@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+	<meta http-equiv="Content-Type" content="text/html;charset=utf-8" >
+	<title></title>
+	<style type="text/css">
+		html,body,#editorContent{
+			width: 100%;
+			height: 100%;
+			margin: 0;
+			padding: 0;
+			overflow: hidden;
+		}
+	</style>
+</head>
+<body>
+<div id="editorContent"></div>
+<script type="text/javascript">
+	var fs = parent.require('fs');
+	var iconv = parent.require('iconv-lite');
+	var path = parent.require('path');
+	// var Editor = parent.require('../../common/editor.js');
+	var StringUtil = parent.require('../../common/stringUtil.js');
+	var editorConfig = parent.require('../../common/editorconfig.js');
+	var _urlparams = StringUtil.getUrlParams();
+</script>
+<script type="text/javascript" src="../../node_modules/monaco-editor/min/vs/loader.js"></script>
+<script type="text/javascript">
+(function(){
+    var urlparams = _urlparams;
+	var editorInfo = {};
+	require.config({ 
+		baseUrl : uriFromPath(path.join(parent.__dirname, '../../node_modules/monaco-editor/min')),
+		'vs/nls' : { availableLanguages: {'*': 'zh-cn'}	}
+	});
+    // workaround monaco-css not understanding the environment
+    parent.self.module = undefined;
+    // workaround monaco-typescript not understanding the environment
+    parent.self.process.browser = true;
+    require(['vs/editor/editor.main'], function() {
+        var editorHtml = document.getElementById('editorContent');
+        var fileUrl = urlparams['fileUrl'];
+        var fileContent = getFileContent(fileUrl);
+        var fileId = urlparams['fileId'];
+        if(fileContent === 'error'){ alert('文件打开失败！\n无效的路径：['+fileUrl+']'); return; }
+    	window._model = monaco.editor.createModel(fileContent, urlparams['fileType']);
+    	var _modelValue = _model.getValue();
+		// _model.onDidChangeRawContent
+		_model.onDidChangeContent(function(e){
+			parent.putEditorModel(fileId, _model);
+		});
+        var editor = monaco.editor.create(editorHtml, {
+			model: _model,
+			theme : editorConfig.editorTheme || "vs"
+		});
+        window.onresize = function() {
+            editor.layout();
+        };
+        editorInfo['urlparams'] = urlparams;
+        editorInfo['editor'] = editor;
+        editorInfo['modelValue'] = _modelValue;
+        fileId = fileId.substring(0, fileId.lastIndexOf('.'));
+        parent.putEditorInfo(fileId, editorInfo);
+    });
+
+    function uriFromPath(_path) {
+	    var pathName = path.resolve(_path).replace(/\\/g, '/');
+	    if (pathName.length > 0 && pathName.charAt(0) !== '/') {
+	        pathName = '/' + pathName;
+	    }
+	    return encodeURI('file://' + pathName);
+	}
+
+	function getFileContent(fileUrl){
+	    if(!fileUrl){ return 'error'; }
+	    var fileContent = fs.readFileSync(fileUrl); 
+	    return decode(fileContent);
+	}
+
+	function decode(data){
+	    if((iconv.decode(data, 'UTF-8')).indexOf('�') > -1){ 
+	    	editorInfo['encoding'] = 'GBK';
+	    	return iconv.decode(data, 'GBK');
+	    }else{
+	    	editorInfo['encoding'] = 'UTF-8';
+	    	return iconv.decode(data, 'UTF-8');
+	    }
+	}
+
+
+
+})();
+   
+
+</script>
+</body>
+</html>

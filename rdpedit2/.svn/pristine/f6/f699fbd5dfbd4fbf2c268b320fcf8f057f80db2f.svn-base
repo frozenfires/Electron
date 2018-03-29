@@ -1,0 +1,73 @@
+(function(){
+	var that = exports;
+	var _Menu = require('electron').remote.Menu;
+	var System = require('./system.js');
+	var View = require('./view.js');
+	var Exportdoc = require('../views/exportdoc/exportdoc.js');
+	
+    var template = [ 
+	    {
+            label: '文件',
+            submenu: [
+                { label: '切换工程',click:System.switchProject },
+                {label: '刷新页面',accelerator: 'F5',click:View.reloadFocuseTab },
+                {label: '后退',click:View.backPreLever},
+                {label: '前进',click:View.goForward},
+                {label: '保存',accelerator: 'Ctrl+S',click:View.saveFile},
+                {label: '保存所有',accelerator: 'Ctrl+Shift+S',click:View.saveAllFile},
+                {label: '关闭当前',accelerator: 'Ctrl+W',click:View.closeFile},
+                {label: '关闭所有',accelerator: 'Ctrl+Shift+W',click:View.closeAllFiles},
+                {label: '关闭其他',click:View.closeOtherFiles},
+            ]
+        },{
+			label:'工具',
+			submenu:[
+			    {label: '打开RDP帮助文档',click:Exportdoc.export},
+			    {label:'页面预览',click:System.funcPreview},
+			    {
+				   	label:'运行',
+				   	submenu:[
+				   	     {label:'启动',click:System.openExeByFileName_qiDong},
+				   	     {label:'加密',click:System.openExeByFileName_jiaMi},
+				   	     {label:'解密',click:System.openExeByFileName_jieMi},
+				   	     {label:'参数配置',click:System.openExeByFileName_peiZhi},
+				   	     {label:'xml流程检测',click:System.openExeByFileName_jianCe},
+				   	     {label:'在线更新',click:System.openExeByFileName_update},
+				   	     {label:'守护进程',click:System.openExeByFileName_shouHu},
+				   	]
+			   },
+			   {
+				   	label:'肤色',
+				   	submenu:[
+				   	     {label:'经典白',click:function(){
+							 View.createTheme('vs'); }  },
+				   	     {label:'酷炫黑',click:function(){View.createTheme('vs-dark'); } },
+				   	     //{label:'黑客帝国',click:function(){View.createTheme('hc-black'); }},
+				   	]
+			   }
+			]
+		},{
+				   	label:'查找',
+				   	submenu:[
+				   	     {label:'查找文件',accelerator:'Ctrl+Shift+F',click:View.find_in_files},
+				   	]
+		},{
+			label:'帮助',
+			submenu:[
+              // {label:'开发者工具',accelerator: 'Ctrl+F12', click: View.toogleFocusedDevtool},
+			  // {label:'开发者工具tab',accelerator: 'F11',click:View.toogleFocuseTabDevtool},
+			   {label:'版本更新日志',click:System.showLogInfo},
+			   
+			  // {label:'根据路径打开程序',click:System.openExeByFilePath},
+              // {label:'根据名称打开程序',click:System.openExeByFileName},
+			   
+			]
+		}
+    ];
+
+	that.loadMenu = function(){
+		var menu = _Menu.buildFromTemplate(template);
+        _Menu.setApplicationMenu(menu);
+	}
+
+})()

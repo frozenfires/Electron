@@ -1,0 +1,41 @@
+<!doctype html>
+<html>
+<head>
+	<title>P端模拟器</title>
+    <meta http-equiv="content-type" content="text/html;charset=utf-8" />
+    <link rel="stylesheet" href="../../lib/layui/css/layui.css" />
+	<script src="../../external/jquery-1.9.0-min.js"></script>
+	<script src="../../lib/jqtree/tree.jquery.js"></script>
+	<script src="../../lib/layui/layui.js"></script>
+	<script src="../../src/jquery.xml2json.js"></script>
+	<script src="configIndex.js"></script>
+	<script type="text/html" id="barDemo">
+	  <a class="layui-btn layui-btn-mini" lay-event="add">增加</a>
+	  <a class="layui-btn layui-btn-mini" lay-event="edit">编辑</a>
+	  <a class="layui-btn layui-btn-danger layui-btn-mini" lay-event="del">删除</a>
+	  <a class="layui-btn layui-btn-danger layui-btn-mini" lay-event="setdef">设为默认</a>	  
+	</script>
+</head>
+<body>
+	<div class="layui-form-item">
+		<button class="layui-btn layui-btn-normal" id="add">增加</button>
+		<button class="layui-btn layui-btn-normal" id="reset">重置默认模版</button>
+		<!-- <button class="layui-btn layui-btn-normal" id="delete">删除</button> -->
+	</div>
+	<div class="layui-form-item">
+		<table class="layui-table" id="config_table" lay-data="{height:480, page:true,limits:[8,10,20,30,40],limit:8,id: 'config_table',even:true}" lay-filter="config_table">
+			  <thead>
+				<tr>
+				  <th lay-data="{checkbox:true}"></th>
+				  <th lay-data="{field:'name', width:220, sort: true}">配置名称</th>
+				  <th lay-data="{field:'def', width:100}">默认</th>
+				  <th lay-data="{fixed: 'right', width:240, align:'center', toolbar: '#barDemo'}">操作</th>
+				</tr>
+			  </thead>
+		</table>
+	</div>
+
+	
+
+</body>
+</html>

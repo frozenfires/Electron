@@ -1,0 +1,1 @@
+{"0210":{"success":{"length":null,"bitmap":"3,4","processingCode":"qweqwe","def":true}},"0810":{"faile":{"length":null,"bitmap":"3,7","processingCode":"100200","def":true},"success":{"length":null,"bitmap":"2,3,4,7","processingCode":"1001"}}}

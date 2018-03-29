@@ -1,0 +1,92 @@
+<!doctype html>
+<html>
+<head>
+	<title>P端模拟器</title>
+    <meta http-equiv="content-type" content="text/html;charset=utf-8" />
+    <link rel="stylesheet" href="../../lib/layui/css/layui.css" />
+	<script src="../../external/jquery-1.9.0-min.js"></script>
+	<script src="../../lib/jqtree/tree.jquery.js"></script>
+	<script src="../../lib/layui/layui.js"></script>
+	<script src="../../src/jquery.xml2json.js"></script>
+	<script src="editconfig.js"></script>
+	<script>
+	$(function(){
+		//Demo
+		layui.use('form', function(){
+		  var form = layui.form;
+		  
+		  //监听提交
+		  form.on('submit(formDemo)', function(data){
+			layer.msg(JSON.stringify(data.field));
+			return false;
+		  });
+		});
+	})
+	</script>
+</head>
+<body>
+	<form class="layui-form" action="#">
+			<label class="layui-form-label">配置名称</label>
+			<input type="text" id="filename" required  lay-verify="required" placeholder="请输入配置名称" autocomplete="off" class="layui-input" style="width:300px">
+		<hr>
+		<div class="layui-form-item">
+		<fieldset class="layui-elem-field layui-field-title">
+			<legend style="font-size:16px">报文头配置&nbsp;&nbsp;
+				<a class="layui-btn layui-btn-normal layui-btn-mini" id="commHeadField_add">增加</a>
+			</legend>
+			<table class="layui-table" id="commHeadField" lay-data="{height:240,id: 'commHeadField'}">
+			  <thead>
+				<tr>
+				<th lay-data="{field:'id', width:150}">id</th>	
+				  <th lay-data="{field:'mapping', width:150,edit:'text'}">报文头类型</th>
+				  <th lay-data="{field:'datatype', width:150,edit:'text'}">数据类型</th>
+				  <th lay-data="{field:'length', width:150, sort: true,edit:'text'}">长度</th>
+				  		  
+				</tr>
+			  </thead>
+			</table>
+		</fieldset>
+		</div>
+		<div class="layui-form-item">
+		<fieldset class="layui-elem-field layui-field-title">
+			<legend style="font-size:16px">域配置</legend>
+			<table class="layui-table" id="fields" lay-data="{height:300,id: 'fields',page:false,limit:150}">
+			  <thead>
+				<tr>
+				  <th lay-data="{field:'id', width:150,sort:true}">域</th>
+				  <th lay-data="{field:'datatype', width:150,edit:'text'}">数据类型</th>
+				  <th lay-data="{field:'length', width:150, edit:'text'}">长度</th>
+				  <th lay-data="{field:'mapping',edit:'text', width:200}">域描述</th>
+					<th lay-data="{field:'mac',edit:'text', width:100}">mac</th>				  
+				</tr>
+			  </thead>
+			</table>
+		</fieldset>
+		</div>
+		<div class="layui-form-item">
+		<fieldset class="layui-elem-field layui-field-title">
+			<legend style="font-size:16px">交易类别差异字段配置
+				 &nbsp;&nbsp;<a class="layui-btn layui-btn-normal layui-btn-mini" id="appFieldsConfig_add">增加</a>
+			</legend>
+			<table class="layui-table" id="appFieldsConfig" lay-data="{height:200,id: 'appFieldsConfig'}">
+			  <thead>
+				<tr>
+				<th lay-data="{field:'APPTYPE', width:100,edit:'text'}">报文类型</th>
+				  <th lay-data="{field:'id', width:100,edit:'text'}">域</th>
+				  <th lay-data="{field:'datatype', width:100,edit:'text'}">数据类型</th>
+				  <th lay-data="{field:'enco', width:100,edit:'text'}">编码格式</th>
+				  <th lay-data="{field:'length', width:100, sort: true,edit:'text'}">长度</th>
+				  <th lay-data="{field:'mapping',edit:'text', width:150}">域描述</th>	
+				</tr>
+			  </thead>
+			</table>
+		</fieldset>
+		</div>
+
+		<button class="layui-btn" lay-submit lay-filter="formDemo" id="submit">提交</button>
+		<button class="layui-btn" lay-submit lay-filter="formDemo" id="back">返回</button>
+	</form>
+	
+	
+</body>
+</html>

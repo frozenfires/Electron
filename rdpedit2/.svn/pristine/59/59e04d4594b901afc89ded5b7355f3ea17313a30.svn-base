@@ -1,0 +1,512 @@
+(function(){
+    var that = exports;
+    var editorConfig = require('./editorconfig.js');
+    var browserWindow = require('electron').remote.BrowserWindow;
+    var ipcRenderer = require('electron').ipcRenderer;
+    var tabHistory = {index: -1, history: []};
+    var oldIcon;
+
+/**
+ * 设置皮肤
+ * @return 无
+ */
+that.createTheme = function(colour){
+    localStorage.setItem('theme', colour);
+    that.reloadFocuseTab();//刷新怎么来着
+};
+
+
+/**
+ * 打开文件标签页
+ * @param  {string} filepath     文件路径
+ * @return 无
+ */
+that.open = function(filepath){
+    _open(filepath);
+};
+
+/**
+ * 保存文件
+ * @return 无
+ */
+that.saveFile = function(tabId){
+    console.info('保存文件');
+    if(typeof tabId !== "string") tabId = getFocusedTabId();
+    if(!tabId){ console.info('标签页id获取失败,无法进行保存文件操作...'+tabId); return;}
+    _saveFile(tabId);
+};
+
+
+/**
+ * 保存所有文件
+ * @return 无
+ */
+that.saveAllFile = function(){
+    console.info('保存所有文件');
+    // 获取当前打开的所有标签页
+    $('.layui-tab .layui-tab-title li').each(function(index, element){
+        // 遍历调用每个标签页中的保存方法
+        var tabId = $(this).attr('lay-id');
+        _saveFile(tabId);
+    });
+};
+
+/**
+ * 刷新当前Tab页
+ */
+that.reloadFocuseTab = function(){
+    var tab = getFocusedTab();
+    tab.reload();
+};
+
+/**
+ * toogle当前tab页开发工具
+ */
+that.toogleFocuseTabDevtool = function(){
+    var tab = getFocusedTab();
+    if(tab){
+        tab.isDevToolsOpened() ? tab.closeDevTools() : tab.openDevTools();
+    }
+};
+/**
+ *  快捷键'F11' 打开toogle当前tab页开发工具
+ */
+ipcRenderer.on('open_tab_tool', function ( ){
+    var tab = getFocusedTab();
+    if(tab){
+     //   tab.isDevToolsOpened() ? tab.closeDevTools() : tab.openDevTools();
+     tab.openDevTools();
+    }
+});
+
+/**
+ *  快捷键'ctrl+shift+f' 全局查找
+ */
+that.find_in_files = function (){
+	if($("#find_files_window").hasClass("findFile")){
+		$("#find_files_window").removeClass("findFile");
+		$("#find_files_window").addClass("closeFindFile");
+		$("#fileNameSelect").val("");
+	}else{
+		$("#find_files_window").removeClass("closeFindFile");
+		$("#find_files_window").addClass("findFile");
+		$("#fileNameSelect").val("");
+		$("#fileNameSelect")[0].focus();
+	}
+};
+document.onkeydown=function(ev){
+	if($("#find_files_window").hasClass("findFile")){
+        var oEvent=ev||event;
+			if(oEvent.keyCode==27){
+			$("#find_files_window").removeClass("findFile");
+			$("#find_files_window").addClass("closeFindFile");
+			$("#fileNameSelect").val("");
+			}
+	}
+}
+
+
+that.findininfile = function (){
+	var tab = getFocusedTab();
+	var event = new Object();
+	event.type  = "keyDown";
+	event.modifiers  = ["control","shift","f"];
+	event.keyCode = "Control+Shift+F";
+	var contents = tab.getWebContents();
+	contents.sendInputEvent(event);
+
+
+}
+
+
+/**
+ * 后退
+ */
+that.backPreLever = function(){
+    tabHistory_prev();
+};
+
+/**
+ * 前进
+ */
+that.goForward = function (){
+    tabHistory_next();
+};
+
+/**
+ * toggle当前窗口的开发工具
+ */
+that.toogleFocusedDevtool = function(){
+    var win = browserWindow.getFocusedWindow();
+    if(win){
+        win.toggleDevTools();
+    }
+};
+
+/**
+ * 设置文件修改图标
+ */
+that.setFileChangeIcon = function(arg){
+    // $('.layui-tab .layui-tab-title li[lay-id='+arg+'Tab]')
+    // .prepend('<span id="fchangeIcon">*</span> ');
+    $('.layui-tab .layui-tab-title li[lay-id='+arg+'Tab] i').html("&#xe617;");
+    oldIcon = $('.layui-tab .layui-tab-title li[lay-id='+arg+'Tab] i').html();
+    $('.layui-tab .layui-tab-title li[lay-id='+arg+'Tab] i').mouseover(function(){
+       $('.layui-tab .layui-tab-title li[lay-id='+arg+'Tab] i').html("&#x1006;");
+    });
+    $('.layui-tab .layui-tab-title li[lay-id='+arg+'Tab] i').mouseleave(function(){
+       $('.layui-tab .layui-tab-title li[lay-id='+arg+'Tab] i').html(oldIcon);
+    });
+};
+
+/**
+ * 移除文件修改图标
+ */
+that.removeFileChangeIcon = function(arg){
+    // $('.layui-tab .layui-tab-title li[lay-id='+arg+'Tab]')
+    // .find('span').remove('#fchangeIcon');
+    $('.layui-tab .layui-tab-title li[lay-id='+arg+'Tab] i').html("&#x1006;");
+    oldIcon = $('.layui-tab .layui-tab-title li[lay-id='+arg+'Tab] i').html();
+};
+
+/**
+ * 添加标签页时更新系统标题信息
+ */
+that.updateTitleMsg = function(fileUrl){
+    _updateTitleMsg(fileUrl);
+};
+
+/**
+ * 关闭当前文件
+ * @param  {[type]} tabId 标签页id
+ * @return 无
+ */
+that.closeFile = function(tabId){
+    // 获取当前tab进行关闭
+    console.info('关闭文件'+tabId);
+    if(typeof tabId === 'object') tabId = undefined;
+    var _tabId = tabId || getFocusedTabId();
+    if(!_tabId) console.info('标签页id获取失败,无法进行关闭文件操作...'+_tabId);
+    _closeFile(_tabId);
+};
+
+
+
+/**
+ * 关闭其他文件
+ * @param  {[type]} tabId 标签页id
+ * @return 无
+ */
+that.closeOtherFiles = function(tabId){
+    // 获取其他tab进行关闭
+    console.info('关闭其他文件');
+    if(typeof tabId === 'object') tabId = undefined;
+    var fTabId = tabId || getFocusedTabId();
+    $('.layui-tab .layui-tab-title li').each(function(index,element){
+        // 遍历关闭除当前标签页以外的每个标签页
+        var _tabId = $(this).attr('lay-id');
+        if(fTabId !== _tabId){
+            _closeFile(_tabId);
+        }
+    });
+};
+
+
+/**
+ * 关闭所有文件
+ * @return 无
+ */
+that.closeAllFiles = function(){
+    // 获取所有tab进行关闭
+    console.info('关闭所有文件');
+    $('.layui-tab .layui-tab-title li').each(function(index,element){
+        // 遍历关闭每个标签页
+        _closeFile($(this).attr('lay-id'));
+    });
+};
+
+/**
+ * 跳转到相应的叶签
+ */
+that.jumpToTitle = function(e) {
+        var title =$(e.target).html();
+        var tabId = title.substring(0,title.indexOf('.'));
+        
+        tabHistory_push(tabId);
+        switchTab(tabId);
+};
+
+//----------------------------内部方法分界线--------------------------------------------------
+
+/**
+ * 切换页签时，页签栏右下角焦点状态更新
+ * @param  {[type]} fouseTitle [焦点页签名]
+ * @return {[type]}            [description]
+ */
+function switchOpenTitle(fouseTitle){
+    var this_sign = $("#titleleft i#"+fouseTitle);
+    var parent_sign = this_sign.parents('#titleleft');
+    parent_sign.find('.layui-this').removeClass('layui-this');
+    this_sign.addClass('layui-this');
+};
+
+/**
+ * [切换页签时,更新系统标题信息]
+ * @param  {[type]} index [焦点页签的序号]
+ * @return {[type]}       [description]
+ */
+function switchTabsUpdateTitle(index){
+    var tab = $('.layui-tab #fileTabTitle li')[index];
+    if(!tab){ console.info('标签不存在，无法更新系统标题...'); return;}
+    var fouseOpenTitle = tab.getAttribute('lay-id');
+    fouseOpenTitle = fouseOpenTitle.substring(0, fouseOpenTitle.length-3);
+    switchOpenTitle(fouseOpenTitle);
+    var fileUrl = tab.getAttribute('fileUrl') || "";
+    _updateTitleMsg(fileUrl);
+};
+
+/**
+ * 切换页签
+ * tab_id : 页签id
+ */
+function switchTab(tabId) {
+    var element = layui.element();
+    var this_icon =$("#titleleft i#"+tabId+"");
+    var parent_icon = this_icon.parents("#titleleft");
+    parent_icon.find('.layui-this').removeClass('layui-this');
+    this_icon.addClass('layui-this');
+    element.tabChange('indexTab', tabId+'Tab');
+    $('#openTitle').css("display","none");
+}
+
+function _closeFile(tabId){
+    var tabWebview = document.getElementById(tabId+'View');
+    var fileId = tabId.substring(0, tabId.length-3);
+    tabWebview.executeJavaScript('getfileStatus("'+fileId+'")', false, function(retData){
+        if(retData.isChange){
+            if(confirm(retData.file+"文件内容已修改,是否保存？")){
+                _saveFile(tabId, _closeTab);
+                return;
+            }
+        }
+        _closeTab(tabId);
+    });
+}
+
+function _closeTab(tabId){
+    layui.use('element', function(){
+        var element = layui.element(); //Tab的切换功能，切换事件监听等，需要依赖element模块     
+        element.tabDelete('indexTab', tabId);//删除
+        deleteOneTitle(tabId);
+        var  focuseTabId=getFocusedTabId();
+        if(!focuseTabId){ 
+          var liList = $('.layui-tab #fileTabTitle li');
+            if(liList.length>0){
+                liList.eq(0).attr("class","layui-this");
+                focuseTabId = liList.eq(0).attr("lay-id");
+                updatFocus(focuseTabId);
+            }else{ 
+                hideTitle();
+                _updateTitleMsg("");
+            }
+        }else{
+            updatFocus(focuseTabId);
+        }
+     });
+}
+/**
+ * [删除页签时,
+ *  页签栏右侧选中状态的更新
+ *  标题状态的更新]
+ * @param  {[type]} focuseTabId [焦点页签的lay-id]
+ * @return {[type]}             [description]
+ */
+function updatFocus(TabId){
+    var fileId = TabId.substring(0, TabId.length-3);
+    $("#titleleft i#"+fileId).attr("class","layui-icon layui-this"); 
+
+    var fileUrl = $('.layui-tab li[lay-id='+TabId+']').attr('fileUrl');
+    _updateTitleMsg(fileUrl);
+}
+
+function _saveFile(tabId, callback){
+    var tabWebview = document.getElementById(tabId+'View');
+    var fileId = tabId.substring(0, tabId.length-3);
+    tabWebview.executeJavaScript('saveFile("'+fileId+'")', false, function(retData){
+        if(retData.result === "0"){
+            // 保存成功
+            if(typeof callback === 'function'){
+                callback(tabId);
+            }
+        }else if(retData.result === "1"){
+            // 文件未做修改
+            that.removeFileChangeIcon(retData.fileId);
+        }else{
+            alert("文件保存失败，请重试！");
+        }
+    });
+}
+
+function _open(filepath){
+
+    var editor = editorConfig.getEditor(filepath);
+    if(editor)
+        addTabToIndexPage(editor);
+}
+
+function _addOpenTitle(Params){
+     var dd_1 ='<dd><li><a class ="clickTitle">'+Params.file+'</a></li></dd>';
+     var dd_2 ='<i id="'+Params.fileName+'" class="layui-icon layui-this">&#xe618;</i></br>';
+     if( $("#titleleft i#"+Params.fileName+"").length >0  ){
+          console.info('当前打开的标签已存在...');
+     }else{
+         $('#openTitle dl.layui-nav-child #titleright').append(dd_1);
+         $('#openTitle dl.layui-nav-child #titleleft').append(dd_2);
+         //删除上一个添加的layui-icon
+         ($("#titleleft i#"+Params.fileName+"").prev().prev()).attr("class","layui-icon"); 
+     }
+    
+};
+/**
+ * 新增标签页
+ * @param  {json} tabParams  打开标签页所需参数
+ * @return 无
+ */
+function addTabToIndexPage(tabParams) {
+
+    var tabId = tabParams.fileName + 'Tab';
+    var webId = tabParams.fileName + 'TabView';
+    layui.use('element', function(){
+        var element = layui.element(); //Tab的切换功能，切换事件监听等，需要依赖element模块          
+        var _tabId = $('.layui-tab .layui-tab-title li[lay-id='+tabId+']').length;
+        var _webId = $('.layui-tab #fileTabContent .layui-tab-item webview[id='+webId+']').length;
+        if(_tabId == 0 && _webId == 0){
+            var tab_webview = '<webview id="'+webId+'" src="'+tabParams.editorURL
+                + '?fileId=' + tabParams.file
+                + '&fileType=' + tabParams.fileType
+                + '&fileUrl=' + tabParams.fileUrl
+                + '&fileName=' + tabParams.fileName
+                + '&path=' + tabParams.path
+                + '&file=' + tabParams.file
+                + '" style="display:flex; height:100%; " autosize="on" allowpopups nodeintegration></webview>';
+            element.tabAdd('indexTab', {title:tabParams.file, content:tab_webview, id: tabId});
+        }else{
+            console.info('当前打开的标签已存在，切换标签...');    
+        }
+        element.tabChange('indexTab', tabId);//切换
+        tabHistory_push(tabParams.fileName);
+        _addOpenTitle(tabParams);
+        $('#rightClick-Window').css("display","none");
+        $('.layui-tab .layui-this').attr('fileUrl', tabParams.fileUrl);
+        event_Tabchange();//页签切换
+    });
+}
+
+function _updateTitleMsg(fileUrl) {
+    var title = "RDP图形化流程分析系统-" + fileUrl.replace(/\//g,'\\');
+    document.title = title;
+}
+
+/**
+ * 获取当前tab对象
+ */
+function getFocusedTab(argument) {
+    return document.querySelector('.layui-tab-item.layui-show webview');
+}
+
+/**
+ * 获取当前tabId
+ */
+function getFocusedTabId() {
+    return $('.layui-tab .layui-this').attr('lay-id');
+}
+
+/**
+ * 删除页签时，删除页签栏右侧 的页签项 
+ */
+function deleteOneTitle(tab_id){
+      var Id = tab_id;
+      var tabId =Id.substring(0, Id.length-3);
+      var index =( $('#titleleft i#'+tabId+'').index() )/2;
+      var titleright = $('#openTitle #titleright').find('dd');
+      var titleleft =$('#openTitle #titleleft').find('i');
+      var br = $('#openTitle #titleleft').find('br');
+       titleleft.eq(index).remove();
+       titleright.eq(index).remove();
+       br.eq(index).remove();
+}
+
+/**
+ * 无叶签时隐藏菜单
+ */
+function hideTitle(){
+    $(".tabs").css("visibility","hidden"); 
+    $('#openTitle #titleright').html('');
+    $('#openTitle #titleleft').html('');
+}
+
+/**
+ * 保存tab页签历史
+ */
+function tabHistory_push(tab_id) {
+    var history = tabHistory.history;
+    if(history.length > 0 && history[history.length - 1] == tab_id){
+        // no-op
+    }else{
+        history.push(tab_id);
+        tabHistory.index = history.length - 1;
+    }
+
+    if(history.length > 30){
+        history.shift();
+    }
+}
+
+/**
+ * 往前切换页签历史
+ */
+function tabHistory_prev(argument) {
+    tabHistory.index--;
+    try{
+        var myIndex = tabHistory.index;
+        var prevTab = tabHistory.history[myIndex];
+        switchTab(prevTab);
+    }catch(e){
+
+    }
+}
+
+function tabHistory_next(argument) {
+    var index = tabHistory.index++;
+    try{
+        var myIndex = tabHistory.index;
+        var prevTab = tabHistory.history[myIndex];
+        switchTab(prevTab);
+    }catch(e){
+
+    }
+}
+
+
+/**
+ * 页签切换事件
+ */
+function event_Tabchange(argument) {
+    layui.use('element', function(){
+        var element = layui.element(); 
+        element.on('tab(indexTab)', function(data){
+            if(data.e){
+                var index = data.index;
+                var currentId = $(data.elem).find('ul li:eq('+index+')').attr('lay-id');
+                currentId = currentId.substring(0, currentId.length -3);
+                tabHistory_push(currentId);
+                switchTabsUpdateTitle(data.index);
+            }
+        });
+    });
+}
+
+
+
+
+}())

@@ -1,0 +1,32 @@
+html,body{height: 100%}
+body{background-color: #cecece; padding: 0px; margin: 0px; clear: both; }
+
+/* 隐藏以前的菜单栏 */
+.shortcut{background-color: #46ab3c;; height: 30px; position: relative; z-index: 200;}
+.shortcut span{height: 17px; width: 17px; color: #fff; margin-left: 3px; margin-right: 3px;}
+.shortcut a{line-height: 30px;}
+.shortcut {display:none}
+
+.navator,.sysmain{top: 0px; padding-top: 0px; }
+.navator,.spliter,.sysmain,#projectTree{ display: inline-block; height: 100%}
+.navator{overflow: auto; position: fixed; z-index: 100; width: 260px; font-size: 12px;}
+#projectTree{display: block; background-color: #272b2e;}
+
+ul.jqtree-tree .jqtree-toggler,
+ul.jqtree-tree .jqtree-toggler:hover {color: #46ab3c;}
+
+ul.jqtree-tree .jqtree-title {color: #e8e9ee; }
+/* ul.jqtree-tree .jqtree-title:hover {color: #444; } */
+/*ul.jqtree-tree ul.jqtree-tree li.jqtree_common:hover{background-color: #a6a7a8;}*/
+
+ul.jqtree-tree li.jqtree-selected > .jqtree-element, ul.jqtree-tree li.jqtree-selected > .jqtree-element:hover {
+    background-color: #5d8cab;
+    background: #666;}
+
+
+.sysmain{width: 100%; background-color: #c8c8c8; left: 0px;  padding-left: 260px; position: fixed;}
+.sysmain .tabs{background-color: #e8e9ee; height: 100%; margin-left:8px;}
+
+.sysmain div#splitor{width: 2px; height: 100%; cursor: e-resize; float: left;}
+
+

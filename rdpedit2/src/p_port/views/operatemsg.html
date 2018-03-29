@@ -1,0 +1,60 @@
+<!doctype html>
+<html>
+<head>
+	<title>P端模拟器</title>
+    <meta http-equiv="content-type" content="text/html;charset=utf-8" />
+    <link rel="stylesheet" href="../../lib/layui/css/layui.css" />
+	<script src="../../external/jquery-1.9.0-min.js"></script>
+	<script src="../../lib/jqtree/tree.jquery.js"></script>
+	<script src="../../lib/layui/layui.js"></script>
+	<script src="../../src/jquery.xml2json.js"></script>
+	<script src="operatemsg.js"></script>
+
+</head>
+<body>
+	<div class="layui-form-item">
+		<table>
+			<tr>
+				<td><label class="layui-form-label">报文类型</label></td>
+				<td><input type="text" id="APPTYPE" required  lay-verify="required" placeholder="请输入标题" autocomplete="off" class="layui-input"></td>
+				<td><label class="layui-form-label">返回名称</label></td>
+				<td><input type="text" id="backname" required  lay-verify="required" placeholder="请输入标题" autocomplete="off" class="layui-input"></td>
+			</tr>
+			<tr>
+				<td><label class="layui-form-label">位图</label></td>
+				<td><input type="text" id="length" required  lay-verify="required" placeholder="请输入标题" autocomplete="off" class="layui-input"></td>
+				<td><button class="layui-btn layui-btn-normal" id="bulid_index">生成索引</button></td>
+				<td><button class="layui-btn layui-btn-normal" id="find">查询</button></td>				
+			</tr>
+		</table>
+	</div>
+	<div class="layui-form-item">
+		<button class="layui-btn layui-btn-normal" id="add">增加</button>
+		<button class="layui-btn layui-btn-normal" id="modify">修改</button>
+		<button class="layui-btn layui-btn-normal" id="delete">删除</button>
+		<button class="layui-btn layui-btn-normal" id="import">导入报文库</button>
+		<button class="layui-btn layui-btn-normal" id="export">导出报文信息</button>
+	</div>
+		<div class="layui-form-item">
+			<table class="layui-table" id="msgbase" lay-data="{height:400, page:true,limits:[8,10,20,30,40],limit:8,id: 'msgbase',even:true}" lay-filter="msgbase_table">
+			  <thead>
+				<tr>
+			<!-- 	<th lay-data="{fixed: 'right', width:150, align:'center', toolbar: '#barDemo'}"></th> -->
+				<th lay-data="{checkbox:true}"></th>
+				  <th lay-data="{field:'APPTYPE', width:80, sort: true}">报文类型</th>
+				  <th lay-data="{field:'backname', width:120}">返回名称</th>
+				  <th lay-data="{field:'bitmap', width:200}">位图</th>
+				  <th lay-data="{field:'processingCode', width:120, sort: true}">交易处理码</th>
+				  <th lay-data="{field:'def', width:80, sort: true}">是否默认</th>
+				  <th lay-data="{width:150, align:'center', toolbar: '#barDemo'}">自定义处理方法</th>			  
+				</tr>
+			  </thead>
+			</table>
+		</div>
+
+	<script type="text/html" id="barDemo">
+	  <a class="layui-btn layui-btn-mini layui-bg-orange" lay-event="edit">编辑处理方法</a>	  
+	</script>
+	
+</body>
+</html>

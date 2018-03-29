@@ -1,0 +1,1729 @@
+<?xml version="1.0" encoding="GB2312"?>
+<!--
+******** 返回类型 ******************
+success  : 入钞成功
+error    : 存款故障异常
+eject    : 入钞后客户取消操作
+backmenu : 无钞点击取消存款
+
+******* 修改请增加版本说明 *********
+文件说明：通用存款Cash In过程;适用 *存款* 及 *兑换* 
+版本：1.0.0.1  提交：ShenHeng 日期：2014/08/19
+说明：1：修改存款吸钞处理方式 2：本版本为完整入钞流程 3：增加兑换流程显示分处理
+-->
+<root Remark="存款放钞流程">
+    <step_01>
+        <ClassName>JournalPrint</ClassName>
+        <Params>
+            <PrintText1 Remark="记录内容">进入普通缓存存款模式</PrintText1>
+            <PrintText2 Remark="记录内容，可为空，均在同一记录">@JPrintVal_2</PrintText2>
+            <PrintText3 Remark="记录内容，可为空，均在同一记录">@JPrintVal_3</PrintText3>
+        </Params>
+        <Return>
+            <switch case="default">step_01_openShutter</switch>
+        </Return>
+    </step_01>
+    
+    <step_01_openShutter Remark="打开闸口">
+        <ClassName>CallStep</ClassName>
+        <Params>
+            <Step Remark="流程名">TCR_OpenShutter</Step>
+            <Node Remark="节点名">step_01</Node>
+        </Params>
+        <Return>
+            <switch case="success">step_01_setShutter</switch>
+            <switch case="default">step_CashInFinishErr</switch>
+        </Return>
+    </step_01_openShutter>
+
+	<step_01_setShutter Remark="设置闸口控制">
+        <ClassName>SetData</ClassName>
+        <Params>
+            <VarName Remark="变量名,多个以逗号分隔">@IsDoorOpenFront</VarName>
+            <VarValue Remark="变量值,多个以逗号分隔">N</VarValue>
+        </Params>
+        <Return>
+            <switch case="default">step_03_SwitchTrans</switch>
+        </Return>
+    </step_01_setShutter>
+
+            
+    <step_03_SwitchTrans>
+        <ClassName>SwitchData</ClassName>
+        <Params>
+            <VarName Remark="两个变量名,要比较的变量用逗号分隔">@InternalTransCode</VarName>
+        </Params>
+        <Return>
+            <switch case="default">step_04_ShowDEPProcess</switch>
+            <switch case="DEP">step_04_ShowDEPProcess</switch><!-- 存款显示 -->
+            <switch case="EXC">step_04_ShowEXCProcess</switch><!-- 兑换显示 -->
+        </Return>
+    </step_03_SwitchTrans>
+
+    <step_04_ShowDEPProcess Remark="存款提示客户放钞">
+        <ClassName>KeybdInputData</ClassName>
+        <Params>
+            <TimeOut Remark="超时时间,0为无超时">120000</TimeOut>
+            <PageName Remark="网页名(无须路径)">Ntdeposit1_01.html</PageName>
+            <PageID Remark="需要配置的页面ID，如果不用就不填"></PageID>
+            <ShowData Remark="页面显示的数据,格式为:标签1=值,标签2=值2,...">camax=@CIMNumberTemp</ShowData>
+            <GetData Remark="保存页面输入数据的变量,格式为:变量1=标签1,变量2=标签2,..."></GetData>
+            <WaitEvents Remark="在该输入画面需要等待的事件名,以逗号分隔,也可以用变量"></WaitEvents>
+        </Params>
+        <Return>              
+            <switch case="CANCEL">step_11_IsCount</switch><!-- 判暂存 无FinishCashIn 退出 -->
+            <switch case="screen_input_timeout">step_11_IsCount</switch>
+            <switch case="NtCashIn_CashInserted">step_05_ShowProcess</switch>                        
+            <switch case="NtCashIn_CashUnitError">step_CashInFinishErr</switch><!-- 验钞过程中故障 -->                  
+            <switch case="ENTER">step_04_ReadyCashIn</switch>
+            <switch case="default">step_CashInFinishErr</switch>
+        </Return>
+    </step_04_ShowDEPProcess>
+    
+    <step_04_ReadyCashIn Remark="存款初始化">
+        <ClassName>RunScript</ClassName>
+        <Params>
+            <FileName Remark="脚本文件名">TCR_Operator.js</FileName>
+            <FunName Remark="函数名">CashInWithCIM</FunName>
+            <FunParam Remark="参数,多个以逗分隔"></FunParam>
+        </Params>
+        <Return>
+            <switch case="default">step_CashInFinishErr</switch>
+            <switch case="success">step_04_WaitEvent</switch>
+        </Return>
+    </step_04_ReadyCashIn>
+    
+    <step_04_WaitEvent>
+        <ClassName>WaitMultipleEvent</ClassName>
+        <Params>                                  
+            <EventName Remark="事件名,以逗号分隔">NtCashIn_InReadyState,NtCashIn_InCashInState,NtCashIn_CashUnitError,NtCashIn_TimeOut,NtCashIn_DeviceError</EventName>
+            <TimeOut Remark="等待的超时时间,0为不超时">10000</TimeOut>
+            <WaitAll Remark="是否要等待全部的事件,0为否,1为是">0</WaitAll>
+        </Params>
+        <Return>
+            <switch case="NtCashIn_InReadyState">step_04_ClearEvent</switch>
+            <switch case="NtCashIn_InCashInState">step_04_ClearEvent</switch>
+            <switch case="default">step_error</switch>
+        </Return>
+    </step_04_WaitEvent>
+                
+    <step_04_ClearEvent Remark="清除事件">
+            <ClassName>ClearEvent</ClassName>
+            <Params>
+                    <EventName Remark="事件名,以逗号分隔,必须至少有一个">NtCashIn_IdentifyComplete,NtCashIn_CashTaken,NtCashIn_CashInserted,NtCashIn_CashRefused,NtCashIn_CashTooMany,NtCashIn_NoCashIn,NtCashIn_NoCashInActive,NtCashIn_CashUnitError,NtCashIn_CashError,NtCashIn_TimeOut,NtCashIn_DeviceError,NtCashIn_CommandError,NtCashIn_AllCashRefused</EventName>
+            </Params>
+            <Return>
+                    <switch case="default">step_04_set</switch>
+            </Return>
+    </step_04_ClearEvent>              
+        
+    <step_04_set Remark="设置识别钞数">
+        <ClassName>SetData</ClassName>
+        <Params>
+            <VarName Remark="变量名,多个以逗号分隔">@var_CashInQuota,@CNY100Counts,@CNY50Counts,@CNY20Counts,@CNY10Counts,@CNY5Counts,@CNY1Counts,@DEPWithoutCIM</VarName>
+            <VarValue Remark="变量值,多个以逗号分隔">0,0,0,0,0,0,0,0</VarValue>
+        </Params>
+        <Return>
+            <switch case="default">step_04_CashIn</switch>
+        </Return>
+    </step_04_set>
+
+    <step_04_CashIn Remark="识别钞票">
+        <ClassName>RunScript</ClassName>
+        <Params>
+            <FileName Remark="脚本文件名">C_TcrCimOperator.js</FileName>
+            <FunName Remark="函数名">Sys_TcrCashInSync</FunName>
+            <FunParam Remark="参数,多个以逗分隔">1,@var_CashInQuota</FunParam>
+        </Params>
+        <Return>
+            <switch case="success">step_04_WaitEvent</switch>
+            <switch case="default">step_CashInFinishErr</switch>
+        </Return>
+    </step_04_CashIn>
+    
+    <step_04_WaitEvent>
+        <ClassName>WaitMultipleEvent</ClassName>
+        <Params>                                  
+            <EventName Remark="事件名,以逗号分隔">NtCashIn_CashInserted,NtCashIn_NoCashIn,NtCashIn_CashUnitError</EventName>
+            <TimeOut Remark="等待的超时时间,0为不超时">120000</TimeOut>
+            <WaitAll Remark="是否要等待全部的事件,0为否,1为是">0</WaitAll>
+        </Params>
+        <Return>
+            <switch case="NtCashIn_CashInserted">step_05_ShowProcess</switch>
+            <switch case="NtCashIn_NoCashIn">step_05_ShowInfo</switch>
+            <switch case="default">step_error</switch>
+        </Return>
+    </step_04_WaitEvent>
+
+    <step_04_ShowEXCProcess Remark="兑换提示页面">
+        <ClassName>KeybdInputData</ClassName>
+        <Params>
+            <TimeOut Remark="超时时间,0为无超时">120000</TimeOut>
+            <PageName Remark="网页名(无须路径)">CashExchange_comfirm.html</PageName>
+            <PageID Remark="需要配置的页面ID，如果不用就不填"></PageID>
+            <ShowData Remark="页面显示的数据,格式为:标签1=值,标签2=值2,...">cashintypes=@AvaibleDenote,camax=@CIMNumberTemp</ShowData>
+            <GetData Remark="保存页面输入数据的变量,格式为:变量1=标签1,变量2=标签2,..."></GetData>
+            <WaitEvents Remark="在该输入画面需要等待的事件名,以逗号分隔,也可以用变量"></WaitEvents>
+        </Params>
+        <Return>
+            <switch case="CANCEL">step_11_IsCount</switch><!-- 判暂存 无FinishCashIn 退出 -->
+            <switch case="screen_input_timeout">step_11_IsCount</switch>
+            <switch case="NtCashIn_CashInserted">step_04EXC_CashIn</switch>                        
+            <switch case="NtCashIn_CashUnitError">step_CashInFinishErr</switch><!-- 兑换验钞过程中故障 -->                  
+            <switch case="default">step_CashInFinishErr</switch>
+	    <switch case="ENTER">step_04EXC_CashReady</switch>
+        </Return>
+    </step_04_ShowEXCProcess>
+    
+    <step_04EXC_CashReady Remark="存款初始化">
+        <ClassName>RunScript</ClassName>
+        <Params>
+            <FileName Remark="脚本文件名">C_TcrCimOperator.js</FileName>
+            <FunName Remark="函数名">Sys_TcrReadyCashIn</FunName>
+            <FunParam Remark="参数,多个以逗分隔"></FunParam>
+        </Params>
+        <Return>
+            <!--<switch case="default">step_01_ReadyCashInErrLog</switch>-->
+            <switch case="default">step_CashInFinishErr</switch>
+            <switch case="InReadyState">step_04Exc_ClearEvent</switch>
+            <switch case="InCashInState">step_04Exc_ClearEvent</switch>
+        </Return>
+    </step_04EXC_CashReady>
+    
+    <step_04Exc_ClearEvent Remark="清除事件">
+            <ClassName>ClearEvent</ClassName>
+            <Params>
+                    <EventName Remark="事件名,以逗号分隔,必须至少有一个">NtCashIn_IdentifyComplete,NtCashIn_CashTaken,NtCashIn_CashInserted,NtCashIn_CashRefused,NtCashIn_CashTooMany,NtCashIn_NoCashIn,NtCashIn_NoCashInActive,NtCashIn_CashUnitError,NtCashIn_CashError,NtCashIn_TimeOut,NtCashIn_DeviceError,NtCashIn_CommandError,NtCashIn_AllCashRefused</EventName>
+            </Params>
+            <Return>
+                    <switch case="default">step_04_set2</switch>
+            </Return>
+    </step_04Exc_ClearEvent>
+    
+    <step_04_set2 Remark="设置识别钞数">
+        <ClassName>SetData</ClassName>
+        <Params>
+            <VarName Remark="变量名,多个以逗号分隔">@var_CashInQuota,@CNY100Counts,@CNY50Counts,@CNY20Counts,@CNY10Counts,@CNY5Counts,@CNY1Counts,@DEPWithoutCIM</VarName>
+            <VarValue Remark="变量值,多个以逗号分隔">0,0,0,0,0,0,0,0</VarValue>
+        </Params>
+        <Return>
+            <switch case="default">step_04EXC_CashIn</switch>
+        </Return>
+    </step_04_set2>
+    
+    <step_04EXC_CashIn Remark="识别钞票">
+        <ClassName>RunScript</ClassName>
+        <Params>
+            <FileName Remark="脚本文件名">C_TcrCimOperator.js</FileName>
+            <FunName Remark="函数名">Sys_TcrCashInAsync</FunName>
+            <FunParam Remark="参数,多个以逗分隔">1,0</FunParam>
+        </Params>
+        <Return>
+            <switch case="default">step_error</switch>
+            <switch case="CashInserted">step_05_ShowProcess</switch><!-- 开始吸钞 -->
+            <switch case="NoCashIn">step_05_ShowInfo</switch>
+        </Return>
+    </step_04EXC_CashIn>
+
+    <step_05_ShowProcess Remark="正在处理">
+        <ClassName>KeybdInputData</ClassName>
+        <Params>
+            <TimeOut Remark="超时时间,0为无超时">0</TimeOut>
+            <PageName Remark="网页名(无须路径)">NtShowInfo_CashIn.htm</PageName>
+            <PageID Remark="需要配置的页面ID，如果不用就不填"></PageID>
+            <ShowData Remark="页面显示的数据,格式为:标签1=值,标签2=值2,...">info_cn="正在入钞，请稍候...",info_en="Being processed, please wait..."</ShowData>
+            <GetData Remark="保存页面输入数据的变量,格式为:变量1=标签1,变量2=标签2,..."></GetData>
+            <WaitEvents Remark="在该输入画面需要等待的事件名,以逗号分隔,也可以用变量">NtCashIn_CashUnitError,<!--NtCashIn_CashRefused,-->NtCashIn_IdentifyComplete,NtCashIn_NoCashIn</WaitEvents>
+        </Params>
+        <Return>
+            <switch case="NtCashIn_IdentifyComplete">step_05_ClearEvent</switch>                        
+            <switch case="NtCashIn_CashUnitError">step_CashInFinishErr</switch><!-- 入缓存验钞过程中故障 -->
+            <switch case="NtCashIn_CashRefused">step_05_GetAcceptNotesEx</switch>  <!-- 有拒钞 -->                      
+            <switch case="NtCashIn_CashTaken">step_09_checkStatus</switch>
+            <switch case="NtCashIn_NoCashIn">step_05_ClearEvent</switch>
+            <switch case="default">step_CashInFinishErr</switch>
+        </Return>
+    </step_05_ShowProcess>
+    
+    <step_05_ClearEvent Remark="清除事件">
+            <ClassName>ClearEvent</ClassName>
+            <Params>
+                    <EventName Remark="事件名,以逗号分隔,必须至少有一个">NtCashIn_CashRefused,NtCashIn_CashTaken</EventName>
+            </Params>
+            <Return>
+                    <switch case="default">step_05_GetAcceptNotesEx</switch>
+            </Return>
+    </step_05_ClearEvent>
+    
+    <step_05_ShowInfo>
+        <ClassName>ShowPage</ClassName>
+        <Params>
+            <PageName Remark="网页名(无须路径)">Common_ShowInfo.html</PageName>
+            <TimeOut Remark="超时时间,不填或填0为无超时">3000</TimeOut>
+            <IsBlock Remark="页面是否阻塞,1阻塞,0不阻塞">1</IsBlock>
+            <ShowData Remark="页面显示的数据,格式为:标签1=值,标签2=值2">info_cn="请重新放入钞票后确定"</ShowData>
+        </Params>
+        <Return>
+            <switch case="default">step_03_SwitchTrans</switch>
+        </Return>
+    </step_05_ShowInfo>       
+        
+    <step_05_IsStackerFull Remark="判断暂存区是否已满">
+        <ClassName>RunScript</ClassName>
+        <Params>
+            <FileName Remark="脚本文件名">TCR_DataProcess.js</FileName>
+            <FunName Remark="函数名">GetStackerState</FunName>
+            <FunParam Remark="参数,多个以逗号分隔"></FunParam>
+        </Params>
+        <Return>			
+            <switch case="NOTEMPTY">step_05_GetAcceptNotesEx</switch>
+            <switch case="EMPTY">step_05_GetAcceptNotesEx_empty</switch>
+            <switch case="FULL">step_05_GetAcceptNotesExFull</switch>
+            <switch case="default">step_05_GetAcceptNotesEx</switch>
+        </Return>
+    </step_05_IsStackerFull>
+
+    <step_05_timeout Remark="时间间隔">
+		<ClassName>Sleep</ClassName>
+		<Params>
+			<Time Remark="超时时间,毫秒为单位">500</Time>
+		</Params>
+		<Return>
+			<switch case="default">step_05_GetAcceptNotesEx</switch>
+		</Return>
+	</step_05_timeout>
+	
+	<step_05_GetAcceptNotesEx Remark="获取识别到的张数">
+        <ClassName>RunScript</ClassName>
+        <Params>
+            <FileName Remark="脚本文件名">TCR_DataProcess.js</FileName>
+            <FunName Remark="函数名">GetLastAcceptItemCIM</FunName>
+            <FunParam Remark="参数,多个以逗号分隔"></FunParam>
+        </Params>
+        <Return>
+            <switch case="default">step_05_IsCount</switch>
+        </Return>
+    </step_05_GetAcceptNotesEx>			
+                                     		
+    <step_05_IsCount Remark="获取总共识别出的钞票张数">
+        <ClassName>RunScript</ClassName>
+        <Params>
+            <FileName Remark="脚本文件名">TCR_DataProcess.js</FileName>
+            <FunName Remark="函数名">GetTotalIndentifyCounts</FunName>
+            <FunParam Remark="参数,多个以逗号分隔"></FunParam>
+        </Params>
+        <Return>
+            <switch case="default">step_05_setAmount</switch> <!-- 有钞 打印结果 -->
+        </Return>
+    </step_05_IsCount>
+	
+	<step_05_setAmount Remark="">
+        <ClassName>RunScript</ClassName>
+        <Params>
+            <FileName Remark="脚本文件名">GetCheck_TCRInfo.js</FileName>
+            <FunName Remark="函数名">tempCashInInfo</FunName>
+            <FunParam Remark="参数,多个以逗号分隔"></FunParam>
+        </Params>
+        <Return>
+            <switch case="default">step_06_checkCashStatus</switch>
+        </Return>
+    </step_05_setAmount>
+ <!--   
+    <step_05_GetAcceptNotesEx_refuse Remark="获取识别到的张数">
+        <ClassName>RunScript</ClassName>
+        <Params>
+            <FileName Remark="脚本文件名">TCR_DataProcess.js</FileName>
+            <FunName Remark="函数名">GetLastAcceptItemCIM</FunName>
+            <FunParam Remark="参数,多个以逗号分隔"></FunParam>
+        </Params>
+        <Return>
+            <switch case="default">step_05_IsCount_refuse</switch>
+        </Return>
+    </step_05_GetAcceptNotesEx_refuse>			
+                                     		
+    <step_05_IsCount_refuse Remark="获取总共识别出的钞票张数">
+        <ClassName>RunScript</ClassName>
+        <Params>
+            <FileName Remark="脚本文件名">TCR_DataProcess.js</FileName>
+            <FunName Remark="函数名">GetTotalIndentifyCounts</FunName>
+            <FunParam Remark="参数,多个以逗号分隔"></FunParam>
+        </Params>
+        <Return>
+            <switch case="default">step_05_setAmount_refuse</switch>
+        </Return>
+    </step_05_IsCount_refuse>
+	
+	<step_05_setAmount_refuse Remark="">
+        <ClassName>RunScript</ClassName>
+        <Params>
+            <FileName Remark="脚本文件名">GetCheck_TCRInfo.js</FileName>
+            <FunName Remark="函数名">tempCashInInfo</FunName>
+            <FunParam Remark="参数,多个以逗号分隔"></FunParam>
+        </Params>
+        <Return>
+            <switch case="default">step_06_checkCashOutStatus</switch>
+        </Return>
+    </step_05_setAmount_refuse>
+    
+     <step_05_WaitEvent>
+                 <ClassName>WaitMultipleEvent</ClassName>
+                 <Params>                                  
+                                 <EventName Remark="事件名,以逗号分隔">NtCashIn_CashTaken,NtCashIn_IdentifyComplete,NtCashIn_CashNotTaken,NtCashIn_NoCash,NtCashIn_DeviceError,NtCashIn_InExchangeState,NtCashIn_CommandError</EventName>
+                                 <TimeOut Remark="等待的超时时间,0为不超时">60000</TimeOut>
+                                 <WaitAll Remark="是否要等待全部的事件,0为否,1为是">0</WaitAll>
+                 </Params>
+                 <Return>
+             <switch case="NtCashIn_CashTaken">step_06_ShowWait_WaitComplete</switch>
+                         <switch case="NtCashIn_IdentifyComplete">step_05_checkCashInStatus</switch>
+             <switch case="timeout">step_05_checkCashInStatus</switch>
+             <switch case="default">step_05_checkCashInStatus</switch>
+                 </Return>
+     </step_05_WaitEvent>
+    --> 
+    <step_06_checkCashStatus>
+        <ClassName>RunScript</ClassName>
+        <Params>
+            <FileName Remark="脚本文件名">GetCashInInfo.js</FileName>
+            <FunName Remark="函数名">checkAcceptorStatue</FunName>
+            <FunParam Remark="参数,多个以逗分隔"></FunParam>
+        </Params>
+        <Return>
+            <switch case="empty">step_06_ShowWait</switch>
+            <switch case="both">step_06_OpenShutterBoth</switch>
+            <switch case="entrace">step_06_ShowTakeCashIn</switch>
+            <switch case="exit">step_06_OpenShutter</switch>
+            <switch case="default">step_CashInFinishErr</switch>
+        </Return>
+    </step_06_checkCashStatus>
+    
+    <step_journalprint12Empty>
+        <ClassName>JournalPrint</ClassName>
+        <Params>
+            <PrintText1 Remark="记录内容">本次入钞完成</PrintText1>
+            <PrintText2 Remark="记录内容，可为空，均在同一记录">@JPrintVal_2</PrintText2>
+            <PrintText3 Remark="记录内容，可为空，均在同一记录">@JPrintVal_3</PrintText3>
+        </Params>
+        <Return>
+            <switch case="default">step_updatelog12Empty</switch>
+        </Return>
+    </step_journalprint12Empty>  
+
+    <step_06_ShowTakeCashIn>
+        <ClassName>KeybdInputData</ClassName>
+        <Params>
+            <TimeOut Remark="超时时间,0为无超时">30000</TimeOut>
+            <PageName Remark="网页名(无须路径)">Ntmessage_wait.html</PageName>
+            <PageID Remark="需要配置的页面ID，如果不用就不填"></PageID>
+            <ShowData Remark="页面显示的数据,格式为:标签1=值,标签2=值2,...">info_cn="请在取走 入钞口 的钞票后，点击确定！"</ShowData>
+            <GetData Remark="保存页面输入数据的变量,格式为:变量1=标签1,变量2=标签2,..."></GetData>
+            <WaitEvents Remark="在该输入画面需要等待的事件名,以逗号分隔,也可以用变量">NtCashIn_CashTaken,NtCashIn_DeviceError,NtCashIn_InExchangeState,NtCashIn_CommandError</WaitEvents>
+        </Params>
+        <Return>
+            <switch case="NtCashIn_DeviceError">step_CashInFinishErr</switch>
+            <switch case="default">step_06_checkCashStatus</switch>
+        </Return>
+    </step_06_ShowTakeCashIn>
+    
+    <step_06_WaitTakeCashIn>
+        <ClassName>WaitMultipleEvent</ClassName>
+        <Params>                                  
+            <EventName Remark="事件名,以逗号分隔">NtCashIn_CashTaken,NtCashIn_DeviceError,NtCashIn_InExchangeState,NtCashIn_CommandError</EventName>
+            <TimeOut Remark="等待的超时时间,0为不超时">60000</TimeOut>
+            <WaitAll Remark="是否要等待全部的事件,0为否,1为是">0</WaitAll>
+        </Params>
+        <Return>
+            <switch case="NtCashIn_CashTaken">step_06_ShowWait</switch>
+            <switch case="NtCashIn_TimeOut">step_journalprint13In</switch>
+            <switch case="timeout">step_journalprint13In</switch>
+            <switch case="default">step_CashInFinishErr</switch>
+        </Return>
+    </step_06_WaitTakeCashIn>
+
+    <step_journalprint13In>
+        <ClassName>JournalPrint</ClassName>
+        <Params>
+            <PrintText1 Remark="记录内容">***存款异常，用户可能没有取走出钞口的拒钞***</PrintText1>
+            <PrintText2 Remark="记录内容，可为空，均在同一记录"></PrintText2>
+            <PrintText3 Remark="记录内容，可为空，均在同一记录"></PrintText3>
+        </Params>
+        <Return>
+            <switch case="default">step_CashInTimeout_DEP</switch>
+        </Return>
+    </step_journalprint13In>  
+
+    <step_06_OpenShutterBoth Remark="打开闸口">
+        <ClassName>CallStep</ClassName>
+        <Params>
+            <Step Remark="流程名">TCR_OpenShutter</Step>
+            <Node Remark="节点名">step_01</Node>
+        </Params>
+        <Return>
+            <switch case="success">step_06_ShowTakeCashBoth</switch>
+            <switch case="default">step_CashInFinishErr</switch>
+        </Return>
+    </step_06_OpenShutterBoth>
+    
+    <step_06_ShowTakeCashBoth>
+        <ClassName>KeybdInputData</ClassName>
+        <Params>
+            <TimeOut Remark="超时时间,0为无超时">30000</TimeOut>
+            <PageName Remark="网页名(无须路径)">Ntmessage_wait.html</PageName>
+            <PageID Remark="需要配置的页面ID，如果不用就不填"></PageID>
+            <ShowData Remark="页面显示的数据,格式为:标签1=值,标签2=值2,...">info_cn="请将入钞口和出钞口的钞票全部取走后，再点击确定！"</ShowData>
+            <GetData Remark="保存页面输入数据的变量,格式为:变量1=标签1,变量2=标签2,..."></GetData>
+            <WaitEvents Remark="在该输入画面需要等待的事件名,以逗号分隔,也可以用变量">NtCashIn_CashTaken,NtCashIn_DeviceError,NtCashIn_InExchangeState,NtCashIn_CommandError</WaitEvents>
+        </Params>
+        <Return>
+            <switch case="NtCashIn_DeviceError">step_CashInFinishErr</switch>
+            <switch case="default">step_06_checkCashStatusBoth</switch>
+        </Return>
+    </step_06_ShowTakeCashBoth>
+    
+    <step_06_WaitTakeCashBoth>
+        <ClassName>WaitMultipleEvent</ClassName>
+        <Params>                                  
+            <EventName Remark="事件名,以逗号分隔">NtCashIn_CashTaken,NtCashIn_DeviceError,NtCashIn_InExchangeState,NtCashIn_CommandError</EventName>
+            <TimeOut Remark="等待的超时时间,0为不超时">60000</TimeOut>
+            <WaitAll Remark="是否要等待全部的事件,0为否,1为是">0</WaitAll>
+        </Params>
+        <Return>
+            <switch case="NtCashIn_CashTaken">step_06_checkCashStatusBoth</switch>
+            <switch case="NtCashIn_TimeOut">step_journalprint13Both</switch>
+            <switch case="timeout">step_journalprint13Both</switch>
+            <switch case="default">step_CashInFinishErr</switch>
+        </Return>
+    </step_06_WaitTakeCashBoth>
+    
+    <step_06_checkCashStatusBoth>
+        <ClassName>RunScript</ClassName>
+        <Params>
+            <FileName Remark="脚本文件名">GetCashInInfo.js</FileName>
+            <FunName Remark="函数名">checkAcceptorStatue</FunName>
+            <FunParam Remark="参数,多个以逗分隔"></FunParam>
+        </Params>
+        <Return>
+            <switch case="empty">step_07_CloseShutterBoth</switch>
+            <switch case="both">step_journalprint13Both</switch>
+            <switch case="entrace">step_06_EntNotTake</switch>
+            <switch case="exit">step_06_ExitNotTake</switch>
+            <switch case="default">step_CashInFinishErr</switch>
+        </Return>
+    </step_06_checkCashStatusBoth>
+
+    <step_journalprint13Both>
+        <ClassName>JournalPrint</ClassName>
+        <Params>
+            <PrintText1 Remark="记录内容">拒钞都未取走</PrintText1>
+            <PrintText2 Remark="记录内容，可为空，均在同一记录">@JPrintVal_2</PrintText2>
+            <PrintText3 Remark="记录内容，可为空，均在同一记录">@JPrintVal_3</PrintText3>
+        </Params>
+        <Return>
+            <switch case="default">step_06_ShowTakeCashBoth</switch>
+        </Return>
+    </step_journalprint13Both>  
+
+    <step_06_EntNotTake>
+        <ClassName>KeybdInputData</ClassName>
+        <Params>
+            <TimeOut Remark="超时时间,0为无超时">30000</TimeOut>
+            <PageName Remark="网页名(无须路径)">Ntmessage_wait.html</PageName>
+            <PageID Remark="需要配置的页面ID，如果不用就不填"></PageID>
+            <ShowData Remark="页面显示的数据,格式为:标签1=值,标签2=值2,...">info_cn="请在取走 入钞口 的钞票后，点击确定！"</ShowData>
+            <GetData Remark="保存页面输入数据的变量,格式为:变量1=标签1,变量2=标签2,..."></GetData>
+            <WaitEvents Remark="在该输入画面需要等待的事件名,以逗号分隔,也可以用变量"></WaitEvents>
+        </Params>
+        <Return>
+            <switch case="default">step_06_checkCashStatusBoth</switch>
+        </Return>
+    </step_06_EntNotTake>
+        
+    <step_06_ExitNotTake>
+        <ClassName>KeybdInputData</ClassName>
+        <Params>
+            <TimeOut Remark="超时时间,0为无超时">30000</TimeOut>
+            <PageName Remark="网页名(无须路径)">Ntmessage_wait.html</PageName>
+            <PageID Remark="需要配置的页面ID，如果不用就不填"></PageID>
+            <ShowData Remark="页面显示的数据,格式为:标签1=值,标签2=值2,...">info_cn="请在取走 出钞口 的钞票后，点击确定！"</ShowData>
+            <GetData Remark="保存页面输入数据的变量,格式为:变量1=标签1,变量2=标签2,..."></GetData>
+            <WaitEvents Remark="在该输入画面需要等待的事件名,以逗号分隔,也可以用变量"><!--NtCashIn_CashTaken--></WaitEvents>
+        </Params>
+        <Return>
+            <switch case="default">step_06_checkCashStatusBoth</switch>
+        </Return>
+    </step_06_ExitNotTake>
+    
+    <step_07_CloseShutterBoth Remark="关闭闸口">
+        <ClassName>CallStep</ClassName>
+        <Params>
+            <Step Remark="流程名">TCR_CloseShutter</Step>
+            <Node Remark="节点名">step_01</Node>
+        </Params>
+        <Return>
+            <switch case="success">step_08_GetAcceptNotesEx</switch>
+            <switch case="default">step_CashInFinishErr</switch>
+        </Return>
+    </step_07_CloseShutterBoth>
+    
+    <step_06_checkCashOutStatus>
+        <ClassName>RunScript</ClassName>
+        <Params>
+            <FileName Remark="脚本文件名">GetCashInInfo.js</FileName>
+            <FunName Remark="函数名">checkAcceptorOutStatue</FunName>
+            <FunParam Remark="参数,多个以逗分隔"></FunParam>
+        </Params>
+        <Return>
+            <switch case="success">step_06_ShowWait</switch>
+            <switch case="notaken">step_06_OpenShutter</switch>
+            <switch case="default">step_CashInFinishErr</switch>
+        </Return>
+    </step_06_checkCashOutStatus>
+        
+    <step_06_OpenShutter Remark="打开闸口">
+        <ClassName>CallStep</ClassName>
+        <Params>
+            <Step Remark="流程名">TCR_OpenShutter</Step>
+            <Node Remark="节点名">step_01</Node>
+        </Params>
+        <Return>
+            <switch case="success">step_06_ShowTip</switch>
+            <switch case="default">step_CashInFinishErr</switch>
+        </Return>
+    </step_06_OpenShutter>
+        
+    <step_06_ShowTip>
+        <ClassName>KeybdInputData</ClassName>
+        <Params>
+            <TimeOut Remark="超时时间,0为无超时">30000</TimeOut>
+            <PageName Remark="网页名(无须路径)">Ntmessage_wait.html</PageName>
+            <PageID Remark="需要配置的页面ID，如果不用就不填"></PageID>
+            <ShowData Remark="页面显示的数据,格式为:标签1=值,标签2=值2,...">info_cn="请在取走 出钞口 的钞票后，点击确定！"</ShowData>
+            <GetData Remark="保存页面输入数据的变量,格式为:变量1=标签1,变量2=标签2,..."></GetData>
+            <WaitEvents Remark="在该输入画面需要等待的事件名,以逗号分隔,也可以用变量">NtCashIn_CashTaken,NtCashIn_DeviceError,NtCashIn_InExchangeState,NtCashIn_CommandError</WaitEvents>
+        </Params>
+        <Return>
+            <switch case="NtCashIn_DeviceError">step_CashInFinishErr</switch>
+            <switch case="default">step_06_checkCashStatusBoth</switch>
+        </Return>
+    </step_06_ShowTip>
+    
+    <step_06_checkCashStatusOut>
+        <ClassName>RunScript</ClassName>
+        <Params>
+            <FileName Remark="脚本文件名">GetCashInInfo.js</FileName>
+            <FunName Remark="函数名">checkAcceptorStatue</FunName>
+            <FunParam Remark="参数,多个以逗分隔"></FunParam>
+        </Params>
+        <Return>
+            <switch case="empty">step_journalprint12Empty</switch>
+            <switch case="both">step_06_ShowTakeCashBoth</switch>
+            <switch case="entrace">step_06_ShowTakeCashIn</switch>
+            <switch case="exit">step_06_ShowTip</switch>
+            <switch case="default">step_CashInFinishErr</switch>
+        </Return>
+    </step_06_checkCashStatusOut>
+	
+    <step_07_Taken>
+        <ClassName>WaitMultipleEvent</ClassName>
+        <Params>                                  
+            <EventName Remark="事件名,以逗号分隔">NtCashIn_CashTaken,NtCashIn_DeviceError,NtCashIn_InExchangeState,NtCashIn_CommandError</EventName>
+            <TimeOut Remark="等待的超时时间,0为不超时">60000</TimeOut>
+            <WaitAll Remark="是否要等待全部的事件,0为否,1为是">0</WaitAll>
+        </Params>
+        <Return>
+            <switch case="NtCashIn_CashTaken">step_07_CloseShutter</switch>
+            <switch case="NtCashIn_TimeOut">step_journalprint13</switch>
+            <switch case="timeout">step_journalprint13</switch>
+            <switch case="default">step_CashInFinishErr</switch>
+        </Return>
+    </step_07_Taken>
+
+    <step_journalprint13>
+        <ClassName>JournalPrint</ClassName>
+        <Params>
+            <PrintText1 Remark="记录内容">***存款异常，用户可能没有取走出钞口的拒钞***</PrintText1>
+            <PrintText2 Remark="记录内容，可为空，均在同一记录"></PrintText2>
+            <PrintText3 Remark="记录内容，可为空，均在同一记录"></PrintText3>
+        </Params>
+        <Return>
+            <switch case="default">step_09_CloseShutterTimeOut</switch>
+        </Return>
+    </step_journalprint13>  
+
+    <step_09_checkStatus>
+        <ClassName>RunScript</ClassName>
+        <Params>
+            <FileName Remark="脚本文件名">GetCashInInfo.js</FileName>
+            <FunName Remark="函数名">checkAcceptorStatue</FunName>
+            <FunParam Remark="参数,多个以逗分隔"></FunParam>
+        </Params>
+        <Return>
+            <switch case="success">step_06_ShowWait_Refuse</switch>
+            <switch case="notaken">step_07_Taken</switch>
+            <switch case="default">step_CashInFinishErr</switch>
+        </Return>
+    </step_09_checkStatus>
+        
+    <step_06_ShowWait Remark="">
+        <ClassName>ShowPage</ClassName>
+        <Params>
+            <PageName Remark="网页名(无须路径)">Common_ShowWait.html</PageName>
+            <TimeOut Remark="超时时间,不填或填0为无超时">0</TimeOut>
+            <IsBlock Remark="页面是否阻塞,1阻塞,0不阻塞">0</IsBlock>
+            <ShowData Remark="页面显示的数据,格式为:标签1=值,标签2=值2"></ShowData>
+        </Params>
+        <Return>
+            <switch case="default">step_08_GetAcceptNotesEx</switch>
+        </Return>
+    </step_06_ShowWait>
+	
+    <step_06_ShowWait_Refuse Remark="">
+        <ClassName>ShowPage</ClassName>
+        <Params>
+            <PageName Remark="网页名(无须路径)">Common_ShowWait.html</PageName>
+            <TimeOut Remark="超时时间,不填或填0为无超时">0</TimeOut>
+            <IsBlock Remark="页面是否阻塞,1阻塞,0不阻塞">0</IsBlock>
+            <ShowData Remark="页面显示的数据,格式为:标签1=值,标签2=值2"></ShowData>
+        </Params>
+        <Return>
+            <switch case="default">step_07_CloseShutter</switch>
+        </Return>
+    </step_06_ShowWait_Refuse>
+    
+    <step_06_ShowWait_WaitComplete Remark="">
+        <ClassName>ShowPage</ClassName>
+        <Params>
+            <PageName Remark="网页名(无须路径)">Common_ShowWait.html</PageName>
+            <TimeOut Remark="超时时间,不填或填0为无超时">0</TimeOut>
+            <IsBlock Remark="页面是否阻塞,1阻塞,0不阻塞">0</IsBlock>
+            <ShowData Remark="页面显示的数据,格式为:标签1=值,标签2=值2"></ShowData>
+        </Params>
+        <Return>
+            <switch case="default">step_06_IComplete_Refuse</switch>
+        </Return>
+    </step_06_ShowWait_WaitComplete> 
+
+    <step_06_IComplete_Refuse>
+        <ClassName>WaitMultipleEvent</ClassName>
+        <Params>                                  
+            <EventName Remark="事件名,以逗号分隔">NtCashIn_IdentifyComplete,NtCashIn_CashNotTaken,NtCashIn_NoCash,NtCashIn_DeviceError,NtCashIn_InExchangeState,NtCashIn_CommandError</EventName>
+            <TimeOut Remark="等待的超时时间,0为不超时">1000</TimeOut>
+            <WaitAll Remark="是否要等待全部的事件,0为否,1为是">0</WaitAll>
+        </Params>
+        <Return>
+            <switch case="NtCashIn_IdentifyComplete">step_07_CloseShutter</switch>
+            <switch case="NtCashIn_TimeOut">step_07_CloseShutter</switch>
+            <switch case="timeout">step_07_CloseShutter</switch>
+            <switch case="default">step_09_checkStatus</switch>
+        </Return>
+    </step_06_IComplete_Refuse>
+    
+    <step_07_CloseShutter Remark="关闭闸口">
+        <ClassName>CallStep</ClassName>
+        <Params>
+            <Step Remark="流程名">TCR_CloseShutter</Step>
+            <Node Remark="节点名">step_01</Node>
+        </Params>
+        <Return>
+            <switch case="success">step_08_GetAcceptNotesEx</switch>
+            <switch case="default">step_CashInFinishErr</switch>
+        </Return>
+    </step_07_CloseShutter>
+	
+    <step_09_CloseShutterTimeOut Remark="取款超时关闭闸口">
+        <ClassName>CallStep</ClassName>
+        <Params>
+            <Step Remark="流程名">TCR_CloseShutter</Step>
+            <Node Remark="节点名">step_01</Node>
+        </Params>
+        <Return>
+            <switch case="success">step_CashInTimeout_DEP</switch>
+            <switch case="default">step_CashInTimeout_DEP</switch>
+        </Return>
+    </step_09_CloseShutterTimeOut>
+	
+    <step_07_sleep Remark="延迟3秒">
+        <ClassName>Sleep</ClassName>
+        <Params>
+            <Time Remark="超时时间,毫秒为单位">3000</Time>
+        </Params>
+        <Return>
+            <switch case="success">step_08_GetAcceptNotesEx</switch>
+            <switch case="error">step_08_GetAcceptNotesEx</switch>
+        </Return>
+    </step_07_sleep>
+	
+    <!--step_07_GetAcceptNotes>
+            <ClassName>GetLastAcceptNotes</ClassName>
+            <Params>
+                            <CNY100Counts Remark="识别出的人民币100元的钞票张数">@CNY100Counts</CNY100Counts>
+                            <CNY50Counts Remark="识别出的人民币50元的钞票张数">@CNY50Counts</CNY50Counts>
+                            <CNY20Counts Remark="识别出的人民币20元的钞票张数">@CNY20Counts</CNY20Counts>
+                            <CNY10Counts Remark="识别出的人民币10元的钞票张数">@CNY10Counts</CNY10Counts>
+            </Params>
+            <Return>
+                    <switch case="error">step_CashInFinishErr</switch>
+                    <switch case="default">step_08_GetAcceptNotesEx</switch>
+            </Return>
+    </step_07_GetAcceptNotes-->
+        
+    <step_08_GetAcceptNotesEx Remark="获取识别到的张数">
+        <ClassName>RunScript</ClassName>
+        <Params>
+            <FileName Remark="脚本文件名">TCR_DataProcess.js</FileName>
+            <FunName Remark="函数名">GetLastAcceptItemCIM</FunName>
+            <FunParam Remark="参数,多个以逗号分隔"></FunParam>
+        </Params>
+        <Return>
+            <switch case="error">step_GetLastNumber</switch><!-- 未得到数据，退钞重试 -->
+            <switch case="OnlyCNY">step_11_IsCount</switch>
+            <switch case="AllType">step_11_IsCount</switch>
+            <switch case="OnlyForeigh">step_11_IsCount</switch>
+            <switch case="none">step_14_none_DEP</switch><!-- 全是拒钞或未放钞 -->
+            <switch case="default">step_GetLastNumber</switch>
+        </Return>
+    </step_08_GetAcceptNotesEx>			
+                                     		
+    <step_11_IsCount Remark="获取总共识别出的钞票张数">
+        <ClassName>RunScript</ClassName>
+        <Params>
+            <FileName Remark="脚本文件名">TCR_DataProcess.js</FileName>
+            <FunName Remark="函数名">GetTotalIndentifyCounts</FunName>
+            <FunParam Remark="参数,多个以逗号分隔"></FunParam>
+        </Params>
+        <Return>
+            <switch case="default">step_11_JournalPrint</switch> <!-- 有钞 打印结果 -->
+            <switch case="none">step_11_ConfirmStacker</switch><!-- 无任何钞币 -->
+        </Return>
+    </step_11_IsCount>
+    
+    <step_11_ConfirmStacker Remark="判断暂存区是否已满">
+        <ClassName>RunScript</ClassName>
+        <Params>
+            <FileName Remark="脚本文件名">TCR_DataProcess.js</FileName>
+            <FunName Remark="函数名">GetStackerState</FunName>
+            <FunParam Remark="参数,多个以逗号分隔"></FunParam>
+        </Params>
+        <Return>	
+            <switch case="EMPTY">step_backmenu</switch><!-- 无钞直接返回 -->		
+            <switch case="NOTEMPTY">step_GetLastNumber</switch><!-- 有钞但未获取到数值，失败退钞 -->
+            <switch case="FULL">step_06_ShowWait</switch>
+            <switch case="default">step_06_ShowWait</switch>
+        </Return>
+    </step_11_ConfirmStacker>  
+    
+    <step_11_JournalPrint Remark="打印暂存结果">
+        <ClassName>JournalPrint</ClassName>
+        <Params>
+            <PrintText1 Remark="记录内容">@JPrintVal_1</PrintText1>
+            <PrintText2 Remark="记录内容，可为空，均在同一记录">@JPrintVal_2</PrintText2>
+            <PrintText3 Remark="记录内容，可为空，均在同一记录">@JPrintVal_3</PrintText3>
+        </Params>
+        <Return>
+            <switch case="default">step_12_IsStackerFull</switch>
+        </Return>
+    </step_11_JournalPrint>
+
+    <!-- 确认存款金额页面，此处判断是否需要继续存款按钮，暂存满屏蔽 -->
+    <step_12_IsStackerFull Remark="判断暂存区是否已满">
+        <ClassName>RunScript</ClassName>
+        <Params>
+            <FileName Remark="脚本文件名">TCR_DataProcess.js</FileName>
+            <FunName Remark="函数名">GetStackerState</FunName>
+            <FunParam Remark="参数,多个以逗号分隔"></FunParam>
+        </Params>
+        <Return>	
+            <switch case="EMPTY">step_12_IsStackerFull2</switch>		
+            <switch case="NOTEMPTY">step_12_IsStackerFull2</switch>
+            <switch case="FULL">step_14_full</switch>
+            <switch case="default">step_14_full</switch>
+        </Return>
+    </step_12_IsStackerFull>                              	       
+
+    <step_12_IsStackerFull2>
+        <ClassName>CompareData</ClassName>
+        <Params>
+            <VarName Remark="两个变量名,要比较的变量用逗号分隔">@CIMNumberTemp,0</VarName>
+        </Params>
+        <Return>
+            <switch case="equal">step_14_full</switch>
+            <switch case="default">step_14_notfull</switch>
+        </Return>
+    </step_12_IsStackerFull2>
+        
+    <!--step_13_CheckCIMState Remark="显示明细前查询状态防止卡钞故障继续交易">
+            <ClassName>RunScript</ClassName>
+            <Params>
+                    <FileName Remark="脚本文件名">CheckCashIn.js</FileName>
+                    <FunName Remark="函数名">CheckCashIn</FunName>
+                    <FunParam Remark="参数,多个以逗号分隔"></FunParam>
+            </Params>
+            <Return>
+                    <switch case="default">step_DevError</switch>
+                    <switch case="RejectMoney">step_14_notfull</switch>
+                    <switch case="success">step_backmenu</switch>
+            </Return>
+    </step_13_CheckCIMState-->
+        
+    <step_14_notfull Remark="存款和兑换显示页面不太一样">
+        <ClassName>SwitchData</ClassName>
+        <Params>
+            <VarName Remark="两个变量名,要比较的变量用逗号分隔">@InternalTransCode</VarName>
+        </Params>
+        <Return>
+            <switch case="default">step_14_notfull_DEP</switch>
+            <switch case="DEP">step_14_notfull_DEP</switch><!-- 存款显示 -->
+            <switch case="EXC">step_14_notfull_EXC</switch><!-- 兑换显示 -->
+        </Return>
+    </step_14_notfull>
+
+    <step_14_notfull_DEP>
+        <ClassName>KeybdInputData</ClassName>
+        <Params>
+            <TimeOut Remark="超时时间,0为无超时">60000</TimeOut>
+            <PageName Remark="网页名(无须路径)">Ntdeposit1_02.html</PageName>
+            <PageID Remark="需要配置的页面ID，如果不用就不填"></PageID>
+            <ShowData Remark="页面显示的数据,格式为:标签1=值,标签2=值2,...">deviceNo=@DeviceNo,accountname=@AccountName,cardno=@Card_No,Note100Count=@CNY100TotalCounts,Note50Count=@CNY50TotalCounts,Note20Count=@CNY20TotalCounts,Note10Count=@CNY10TotalCounts,Note5Count=@CNY5TotalCounts,Note1Count=@CNY1TotalCounts,amount=@Show_DepositAmount</ShowData>
+            <GetData Remark="保存页面输入数据的变量,格式为:格式为:变量1=标签1,变量2=标签2,...">@DepositAmount=amount</GetData>
+            <WaitEvents Remark="在该输入画面需要等待的事件名,以逗号分隔,也可以用变量"></WaitEvents>
+        </Params>
+        <Return>
+            <switch case="continue" Remark="继续存款">step_03_SwitchTrans</switch><!-- 从头继续开始放钞 -->
+            <switch case="cancel">step_eject</switch>
+            <switch case="enter">step_success</switch>
+            <switch case="screen_input_timeout">step_success</switch><!-- 存款超时继续 -->
+            <switch case="default">step_success</switch>
+        </Return>
+    </step_14_notfull_DEP>
+    
+    <step_notfull_wait>
+        <ClassName>ShowPage</ClassName>
+        <Params>
+            <PageName Remark="网页名(无须路径)">Common_ShowWait.html</PageName>
+            <TimeOut Remark="超时时间,不填或填0为无超时">0</TimeOut>
+            <IsBlock Remark="页面是否阻塞,1阻塞,0不阻塞">0</IsBlock>
+            <ShowData Remark="页面显示的数据,格式为:标签1=值,标签2=值2"></ShowData>
+        </Params>
+        <Return>
+            <switch case="default">step_14_compareEject</switch>
+        </Return>        
+    </step_notfull_wait>    
+
+    <step_14_compareEject>
+        <ClassName>CompareData</ClassName>
+        <Params>
+            <VarName Remark="两个变量名,要比较的变量用逗号分隔">@IsEjectCash,N</VarName>
+        </Params>
+        <Return>
+            <switch case="equal">step_SwitchData2</switch>
+            <switch case="default">step_ejecttimeout</switch>
+        </Return>
+    </step_14_compareEject>
+
+    <step_SwitchData2>
+        <ClassName>SwitchData</ClassName>
+        <Params>
+            <VarName Remark="两个变量名,要比较的变量用逗号分隔">@InternalTransCode</VarName>
+        </Params>
+        <Return>
+            <switch case="DEP">UPdataRecord</switch>
+            <switch case="NNDEP">UPdataRecord</switch>
+            <switch case="CZDEP">UPdataRecord</switch>
+            <switch case="XYDEP">UPdataRecord</switch>
+            <switch case="XYNNDEP">UPdataRecord</switch>
+            <switch case="EXC">UPdataRecord2</switch>
+        </Return>
+    </step_SwitchData2>
+
+    <UPdataRecord>
+        <ClassName>UpdateRecord</ClassName>
+        <Params>
+            <TableName Remark="表名">TransDEPInfo</TableName>
+            <Condition Remark="更新条件">ID=@QueryRecordID</Condition>
+            <FieldName Remark="字段名,用逗号分隔">ReasonCode</FieldName><!--新增吞钞原因码-->
+            <FieldValue Remark="字段值,用逗号分隔">07</FieldValue>
+        </Params>
+        <Return>
+            <switch case="default">step_DeviceError_022</switch>
+        </Return>       
+    </UPdataRecord>
+    
+    <UPdataRecord2>
+        <ClassName>UpdateRecord</ClassName>
+        <Params>
+            <TableName Remark="表名">TransEXCInfo</TableName>
+            <Condition Remark="更新条件">ID=@QueryRecordID</Condition>
+            <FieldName Remark="字段名,用逗号分隔">ReasonCode</FieldName><!--新增吞钞原因码-->
+            <FieldValue Remark="字段值,用逗号分隔">07</FieldValue>
+        </Params>
+        <Return>
+            <switch case="default">step_DeviceError_022</switch>
+        </Return>       
+    </UPdataRecord2>
+		
+		
+    <step_DeviceError_022 Remark="存款时，设备出现故障，金额为空（不管连续继续存款多少次）">
+        <ClassName>SetData</ClassName>
+        <Params>
+            <VarName Remark="变量名,多个以逗号分隔">@TransRet</VarName>
+            <VarValue Remark="变量值,多个以逗号分隔">INPUTALL</VarValue>
+        </Params>
+        <Return>
+            <switch case="default">step_Ret_retain</switch>
+        </Return>
+    </step_DeviceError_022>
+
+    <step_14_none_DEP>
+        <ClassName>KeybdInputData</ClassName>
+        <Params>
+            <TimeOut Remark="超时时间,0为无超时">60000</TimeOut>
+            <PageName Remark="网页名(无须路径)">Ntdeposit1_02_none.html</PageName>
+            <PageID Remark="需要配置的页面ID，如果不用就不填"></PageID>
+            <ShowData Remark="页面显示的数据,格式为:标签1=值,标签2=值2,...">deviceNo=@DeviceNo,accountname=@AccountName,cardno=@Card_No,Note100Count=@CNY100TotalCounts,Note50Count=@CNY50TotalCounts,Note20Count=@CNY20TotalCounts,Note10Count=@CNY10TotalCounts,Note5Count=@CNY5TotalCounts,Note1Count=@CNY1TotalCounts,amount=@Show_DepositAmount</ShowData>
+            <GetData Remark="保存页面输入数据的变量,格式为:格式为:变量1=标签1,变量2=标签2,...">@DepositAmount=amount</GetData>
+            <WaitEvents Remark="在该输入画面需要等待的事件名,以逗号分隔,也可以用变量"></WaitEvents>
+        </Params>
+        <Return>
+            <switch case="continue" Remark="继续存款">step_03_SwitchTrans</switch><!-- 从头继续开始放钞 -->
+            <switch case="cancel">step_11_IsCount</switch>
+            <switch case="screen_input_timeout">step_none_DEP_wait</switch><!-- 存款超时继续 -->
+            <switch case="default">step_11_IsCount</switch>
+        </Return>
+    </step_14_none_DEP>
+    
+    <step_none_DEP_wait>
+        <ClassName>ShowPage</ClassName>
+        <Params>
+            <PageName Remark="网页名(无须路径)">Common_ShowWait.html</PageName>
+            <TimeOut Remark="超时时间,不填或填0为无超时">0</TimeOut>
+            <IsBlock Remark="页面是否阻塞,1阻塞,0不阻塞">0</IsBlock>
+            <ShowData Remark="页面显示的数据,格式为:标签1=值,标签2=值2"></ShowData>
+        </Params>
+        <Return>
+            <switch case="default">step_14_compareEject</switch>
+        </Return>          
+    </step_none_DEP_wait> 
+
+    <step_14_notfull_EXC>
+        <ClassName>KeybdInputData</ClassName>
+        <Params>
+            <TimeOut Remark="超时时间,0为无超时">30000</TimeOut>
+            <PageName Remark="网页名(无须路径)">CashExchange_continue.html</PageName>
+            <PageID Remark="需要配置的页面ID，如果不用就不填"></PageID>
+            <ShowData Remark="页面显示的数据,格式为:标签1=值,标签2=值2,...">deviceNo=@DeviceNo,Note100Count=@CNY100TotalCounts,Note50Count=@CNY50TotalCounts,Note20Count=@CNY20TotalCounts,Note10Count=@CNY10TotalCounts,Note5Count=@CNY5TotalCounts,Note1Count=@CNY1TotalCounts,amount=@Show_DepositAmount</ShowData>
+            <GetData Remark="保存页面输入数据的变量,格式为:格式为:变量1=标签1,变量2=标签2,...">@DepositAmount=amount</GetData>
+            <WaitEvents Remark="在该输入画面需要等待的事件名,以逗号分隔,也可以用变量"></WaitEvents>
+        </Params>
+        <Return>
+            <switch case="continue">step_03_SwitchTrans</switch>
+            <switch case="cancel">step_eject</switch>
+            <switch case="next">step_success</switch>	
+            <switch case="screen_input_timeout">step_notfull_EXC_wait</switch><!-- 兑换超时退钞 -->								
+            <switch case="default">step_success</switch>
+        </Return>
+    </step_14_notfull_EXC>
+          
+    <step_notfull_EXC_wait>
+        <ClassName>ShowPage</ClassName>
+        <Params>
+            <PageName Remark="网页名(无须路径)">Common_ShowWait.html</PageName>
+            <TimeOut Remark="超时时间,不填或填0为无超时">0</TimeOut>
+            <IsBlock Remark="页面是否阻塞,1阻塞,0不阻塞">0</IsBlock>
+            <ShowData Remark="页面显示的数据,格式为:标签1=值,标签2=值2"></ShowData>
+        </Params>
+        <Return>
+            <switch case="default">step_14_compareEject</switch>
+        </Return>
+    </step_notfull_EXC_wait>     
+              
+    <step_14_full Remark="存款和兑换显示页面不太一样">
+        <ClassName>SwitchData</ClassName>
+        <Params>
+            <VarName Remark="两个变量名,要比较的变量用逗号分隔">@InternalTransCode</VarName>
+        </Params>
+        <Return>
+            <switch case="default">step_14_full_DEP</switch>
+            <switch case="EXC">step_14_full_EXC</switch><!-- 兑换显示 -->
+        </Return>
+    </step_14_full>      
+
+    <step_14_full_DEP>
+        <ClassName>KeybdInputData</ClassName>
+        <Params>
+            <TimeOut Remark="超时时间,0为无超时">60000</TimeOut>
+            <PageName Remark="网页名(无须路径)">Ntdeposit1_02_full_final.html</PageName>
+            <PageID Remark="需要配置的页面ID，如果不用就不填"></PageID>
+            <ShowData Remark="页面显示的数据,格式为:标签1=值,标签2=值2,...">deviceNo=@DeviceNo,accountname=@AccountName,cardno=@Card_No,Note100Count=@CNY100TotalCounts,Note50Count=@CNY50TotalCounts,Note20Count=@CNY20TotalCounts,Note10Count=@CNY10TotalCounts,Note5Count=@CNY5TotalCounts,Note1Count=@CNY1TotalCounts,amount=@Show_DepositAmount</ShowData>
+            <GetData Remark="保存页面输入数据的变量,格式为:格式为:变量1=标签1,变量2=标签2,...">@DepositAmount=amount</GetData>
+            <WaitEvents Remark="在该输入画面需要等待的事件名,以逗号分隔,也可以用变量"></WaitEvents>
+        </Params>
+        <Return>
+            <switch case="cancel">step_eject</switch>
+            <switch case="enter">step_success</switch>
+            <switch case="screen_input_timeout">step_success</switch><!-- 超时继续 存款处理 -->
+            <switch case="default">step_success</switch>
+        </Return>
+    </step_14_full_DEP>     
+    
+    <step_full_DEP_wait>
+        <ClassName>ShowPage</ClassName>
+        <Params>
+            <PageName Remark="网页名(无须路径)">Common_ShowInfo.html</PageName>
+            <TimeOut Remark="超时时间,不填或填0为无超时">0</TimeOut>
+            <IsBlock Remark="页面是否阻塞,1阻塞,0不阻塞">0</IsBlock>
+            <ShowData Remark="页面显示的数据,格式为:标签1=值,标签2=值2">info_cn="正在处理，请稍后！"</ShowData>
+        </Params>
+        <Return>
+            <switch case="default">step_14_compareEject</switch>
+        </Return>
+    </step_full_DEP_wait> 
+
+    <step_14_full_EXC>
+        <ClassName>KeybdInputData</ClassName>
+        <Params>
+            <TimeOut Remark="超时时间,0为无超时">30000</TimeOut>
+            <PageName Remark="网页名(无须路径)">CashExchange_continue_full.html</PageName>
+            <PageID Remark="需要配置的页面ID，如果不用就不填"></PageID>
+            <ShowData Remark="页面显示的数据,格式为:标签1=值,标签2=值2,...">deviceNo=@DeviceNo,Note100Count=@CNY100TotalCounts,Note50Count=@CNY50TotalCounts,Note20Count=@CNY20TotalCounts,Note10Count=@CNY10TotalCounts,Note5Count=@CNY5TotalCounts,Note1Count=@CNY1TotalCounts,amount=@Show_DepositAmount</ShowData>
+            <GetData Remark="保存页面输入数据的变量,格式为:格式为:变量1=标签1,变量2=标签2,...">@DepositAmount=amount</GetData>
+            <WaitEvents Remark="在该输入画面需要等待的事件名,以逗号分隔,也可以用变量"></WaitEvents>
+        </Params>
+        <Return>
+            <switch case="cancel">step_eject</switch>
+            <switch case="next">step_success</switch>
+            <switch case="screen_input_timeout">step_full_EXC_wait</switch><!-- 超时退钞,兑换处理 -->						
+            <switch case="default">step_eject</switch>
+        </Return>
+    </step_14_full_EXC>
+    
+    <step_full_EXC_wait>
+        <ClassName>ShowPage</ClassName>
+        <Params>
+            <PageName Remark="网页名(无须路径)">Common_ShowWait.html</PageName>
+            <TimeOut Remark="超时时间,不填或填0为无超时">0</TimeOut>
+            <IsBlock Remark="页面是否阻塞,1阻塞,0不阻塞">0</IsBlock>
+            <ShowData Remark="页面显示的数据,格式为:标签1=值,标签2=值2"></ShowData>
+        </Params>
+        <Return>
+            <switch case="default">step_14_compareEject</switch>
+        </Return>
+    </step_full_EXC_wait> 
+
+    <!-- 结束通用返回处理 -->
+    <step_Ret_backmenu Remark="设置闸口控制">
+        <ClassName>SetData</ClassName>
+        <Params>
+            <VarName Remark="变量名,多个以逗号分隔">@IsDoorOpenFront</VarName>
+            <VarValue Remark="变量值,多个以逗号分隔">Y</VarValue>
+        </Params>
+        <Return>
+            <switch case="default">step_backmenu_closeShutter</switch>
+        </Return>
+    </step_Ret_backmenu>
+    
+    <step_backmenu_closeShutter Remark="关闭闸口">
+        <ClassName>CallStep</ClassName>
+        <Params>
+            <Step Remark="流程名">TCR_CloseShutter</Step>
+            <Node Remark="节点名">step_01</Node>
+        </Params>
+        <Return>
+            <switch case="default">step_backmenu_FinishCashIn</switch>
+        </Return>
+    </step_backmenu_closeShutter>
+    
+    <!-- 多次放钞为空后，放钞界面返回时需要结束放钞  -->
+    <step_backmenu_FinishCashIn>  
+        <ClassName>RunScript</ClassName>
+        <Params>
+            <FileName Remark="脚本文件名">TCR_Operator.js</FileName>
+            <FunName Remark="函数名">EjectStackerCash</FunName>
+            <FunParam Remark="参数,多个以逗号分隔"></FunParam>
+        </Params>
+        <Return>
+            <switch case="default">step_Ret_backmenu_return</switch>
+            <switch case="NoCashIn">step_Ret_backmenu_return</switch>
+        </Return>
+    </step_backmenu_FinishCashIn> 
+
+    <step_Ret_backmenu_return>
+        <ClassName>CallReturn</ClassName>
+        <Params>
+            <Ret Remark="返回值">backmenu</Ret>
+        </Params>
+        <Return>
+        </Return>
+    </step_Ret_backmenu_return>
+    
+    <step_Ret_retain Remark="设置闸口控制">
+        <ClassName>SetData</ClassName>
+        <Params>
+            <VarName Remark="变量名,多个以逗号分隔">@IsDoorOpenFront</VarName>
+            <VarValue Remark="变量值,多个以逗号分隔">Y</VarValue>
+        </Params>
+        <Return>
+            <switch case="default">step_retain_closeShutter</switch>
+        </Return>
+    </step_Ret_retain>
+    
+    <step_retain_closeShutter Remark="关闭闸口">
+        <ClassName>CallStep</ClassName>
+        <Params>
+            <Step Remark="流程名">TCR_CloseShutter</Step>
+            <Node Remark="节点名">step_01</Node>
+        </Params>
+        <Return>
+            <switch case="default">step_Ret_retain_return</switch>
+        </Return>
+    </step_retain_closeShutter>
+
+    <step_Ret_retain_return>
+        <ClassName>CallReturn</ClassName>
+        <Params>
+            <Ret Remark="返回值">retain</Ret>
+        </Params>
+        <Return>
+        </Return>
+    </step_Ret_retain_return>
+    
+    <step_Ret_error Remark="设置闸口控制">
+        <ClassName>SetData</ClassName>
+        <Params>
+            <VarName Remark="变量名,多个以逗号分隔">@IsDoorOpenFront</VarName>
+            <VarValue Remark="变量值,多个以逗号分隔">Y</VarValue>
+        </Params>
+        <Return>
+            <switch case="default">step_error_closeShutter</switch>
+        </Return>
+    </step_Ret_error>
+    
+    <step_error_closeShutter Remark="关闭闸口">
+        <ClassName>CallStep</ClassName>
+        <Params>
+            <Step Remark="流程名">TCR_CloseShutter</Step>
+            <Node Remark="节点名">step_01</Node>
+        </Params>
+        <Return>
+            <switch case="default">step_Ret_error_return</switch>
+        </Return>
+    </step_error_closeShutter>
+
+    <step_Ret_error_return>
+        <ClassName>CallReturn</ClassName>
+        <Params>
+            <Ret Remark="返回值">error</Ret>
+        </Params>
+        <Return>
+        </Return>
+    </step_Ret_error_return>
+    
+    <step_ejecttimeout Remark="设置闸口控制">
+        <ClassName>SetData</ClassName>
+        <Params>
+            <VarName Remark="变量名,多个以逗号分隔">@IsDoorOpenFront</VarName>
+            <VarValue Remark="变量值,多个以逗号分隔">Y</VarValue>
+        </Params>
+        <Return>
+            <switch case="default">step_ejecttimeout_closeShutter</switch>
+        </Return>
+    </step_ejecttimeout>
+    
+    <step_ejecttimeout_closeShutter Remark="关闭闸口">
+        <ClassName>CallStep</ClassName>
+        <Params>
+            <Step Remark="流程名">TCR_CloseShutter</Step>
+            <Node Remark="节点名">step_01</Node>
+        </Params>
+        <Return>
+            <switch case="default">step_ejecttimeout_return</switch>
+        </Return>
+    </step_ejecttimeout_closeShutter>
+
+    <step_ejecttimeout_return>
+        <ClassName>CallReturn</ClassName>
+        <Params>
+            <Ret Remark="返回值">timeout</Ret>
+        </Params>
+        <Return>
+        </Return>
+    </step_ejecttimeout_return>
+    
+    <step_Ret_eject Remark="设置闸口控制">
+        <ClassName>SetData</ClassName>
+        <Params>
+            <VarName Remark="变量名,多个以逗号分隔">@IsDoorOpenFront</VarName>
+            <VarValue Remark="变量值,多个以逗号分隔">Y</VarValue>
+        </Params>
+        <Return>
+            <switch case="default">step_eject_closeShutter</switch>
+        </Return>
+    </step_Ret_eject>
+
+    <step_eject_closeShutter Remark="关闭闸口">
+        <ClassName>CallStep</ClassName>
+        <Params>
+            <Step Remark="流程名">TCR_CloseShutter</Step>
+            <Node Remark="节点名">step_01</Node>
+        </Params>
+        <Return>
+            <switch case="default">step_Ret_eject_return</switch>
+        </Return>
+    </step_eject_closeShutter>
+
+    <step_Ret_eject_return>
+        <ClassName>CallReturn</ClassName>
+        <Params>
+            <Ret Remark="返回值">eject</Ret>
+        </Params>
+        <Return>
+        </Return>
+    </step_Ret_eject_return>
+
+    <step_Ret_success Remark="设置闸口控制">
+        <ClassName>SetData</ClassName>
+        <Params>
+            <VarName Remark="变量名,多个以逗号分隔">@IsDoorOpenFront</VarName>
+            <VarValue Remark="变量值,多个以逗号分隔">Y</VarValue>
+        </Params>
+        <Return>
+            <switch case="default">step_success_closeShutter</switch>
+        </Return>
+    </step_Ret_success>
+    
+    <step_success_closeShutter Remark="关闭闸口">
+        <ClassName>CallStep</ClassName>
+        <Params>
+            <Step Remark="流程名">TCR_CloseShutter</Step>
+            <Node Remark="节点名">step_01</Node>
+        </Params>
+        <Return>
+            <switch case="default">step_Ret_success_return</switch>
+        </Return>
+    </step_success_closeShutter>
+
+    <step_Ret_success_return>
+        <ClassName>CallReturn</ClassName>
+        <Params>
+            <Ret Remark="返回值">success</Ret>
+        </Params>
+        <Return>
+        </Return>
+    </step_Ret_success_return>
+    <!-- 结束 -->                    
+
+    <!-- ***********************异常及其它处理 ********************** -->  
+    <step_success>
+        <ClassName>ShowPage</ClassName>
+        <Params>
+            <PageName Remark="网页名(无须路径)">Common_ShowWait.html</PageName>
+            <TimeOut Remark="超时时间,不填或填0为无超时">0</TimeOut>
+            <IsBlock Remark="页面是否阻塞,1阻塞,0不阻塞">0</IsBlock>
+            <ShowData Remark="页面显示的数据,格式为:标签1=值,标签2=值2"></ShowData>
+        </Params>
+        <Return>
+            <switch case="default">step_Ret_success</switch>
+        </Return>
+    </step_success>
+    <!-- backmenu时，关闭存钞状态 -->              
+    <step_backmenu>
+        <ClassName>ShowPage</ClassName>
+        <Params>
+            <PageName Remark="网页名(无须路径)">Common_ShowWait.html</PageName>
+            <TimeOut Remark="超时时间,不填或填0为无超时">0</TimeOut>
+            <IsBlock Remark="页面是否阻塞,1阻塞,0不阻塞">0</IsBlock>
+            <ShowData Remark="页面显示的数据,格式为:标签1=值,标签2=值2"></ShowData>
+        </Params>
+        <Return>
+            <switch case="default">step_Ret_backmenu</switch>
+        </Return>
+    </step_backmenu>
+
+
+        
+    <step_eject>
+        <ClassName>ShowPage</ClassName>
+        <Params>
+            <PageName Remark="网页名(无须路径)">Common_ShowWait.html</PageName>
+            <TimeOut Remark="超时时间,不填或填0为无超时">0</TimeOut>
+            <IsBlock Remark="页面是否阻塞,1阻塞,0不阻塞">0</IsBlock>
+            <ShowData Remark="页面显示的数据,格式为:标签1=值,标签2=值2"></ShowData>
+        </Params>
+        <Return>
+            <switch case="default">step_Ret_eject</switch>
+        </Return>
+    </step_eject>        
+        
+    <step_GetLastNumber>
+        <ClassName>ShowPage</ClassName>
+        <Params>
+            <PageName Remark="网页名(无须路径)">Common_ShowInfo.html</PageName>
+            <TimeOut Remark="超时时间,不填或填0为无超时">3000</TimeOut>
+            <IsBlock Remark="页面是否阻塞,1阻塞,0不阻塞">1</IsBlock>
+            <ShowData Remark="页面显示的数据,格式为:标签1=值,标签2=值2">info_cn="入钞失败，请稍候再试"</ShowData>
+        </Params>
+        <Return>
+            <switch case="default">step_Ret_eject</switch>
+        </Return>
+    </step_GetLastNumber>
+    
+    <!--<step_GetLastNumberNone>
+        <ClassName>ShowPage</ClassName>
+        <Params>
+            <PageName Remark="网页名(无须路径)">Common_ShowInfo.html</PageName>
+            <TimeOut Remark="超时时间,不填或填0为无超时">3000</TimeOut>
+            <IsBlock Remark="页面是否阻塞,1阻塞,0不阻塞">1</IsBlock>
+            <ShowData Remark="页面显示的数据,格式为:标签1=值,标签2=值2">info_cn="未识别钞票，请重新放钞"</ShowData>
+        </Params>
+        <Return>
+            <switch case="default">step_01</switch>
+        </Return>
+    </step_GetLastNumberNone>-->
+	
+	
+    <step_GetLastNumberNone>
+        <ClassName>KeybdInputData</ClassName>
+        <Params>
+            <TimeOut Remark="超时时间,0为无超时">0</TimeOut>
+            <PageName Remark="网页名(无须路径)">Common_ShowInfo.html</PageName>
+            <PageID Remark="需要配置的页面ID，如果不用就不填"></PageID>
+            <ShowData Remark="页面显示的数据,格式为:标签1=值,标签2=值2,...">info_cn="请取走未识别的钞票"</ShowData>
+            <GetData Remark="保存页面输入数据的变量,格式为:变量1=标签1,变量2=标签2,..."></GetData>
+            <WaitEvents Remark="在该输入画面需要等待的事件名,以逗号分隔,也可以用变量">NtCashIn_CashTaken,NtCashIn_IdentifyComplete</WaitEvents>
+        </Params>
+        <Return>
+            <switch case="NtCashIn_CashTaken">step_06_ShowWait</switch>
+            <switch case="NtCashIn_IdentifyComplete">step_06_ShowWait</switch>
+            <switch case="default">step_06_ShowWait</switch>
+        </Return>
+    </step_GetLastNumberNone>
+
+        
+    <!-- 设备CashIn 故障，无需要返回处理故障 -->
+    <step_error>
+        <ClassName>ShowPage</ClassName>
+        <Params>
+            <PageName Remark="网页名(无须路径)">Common_ShowInfo.html</PageName>
+            <TimeOut Remark="超时时间,不填或填0为无超时">5000</TimeOut>
+            <IsBlock Remark="页面是否阻塞,1阻塞,0不阻塞">1</IsBlock>
+            <ShowData Remark="页面显示的数据,格式为:标签1=值,标签2=值2">info_cn="设备故障，暂不支持此交易"</ShowData>
+        </Params>
+        <Return>
+            <switch case="default">step_Ret_backmenu</switch>
+        </Return>
+    </step_error>
+        
+    <step_DevError>
+        <ClassName>ShowPage</ClassName>
+        <Params>
+            <PageName Remark="网页名(无须路径)">Common_ShowWait.html</PageName>
+            <TimeOut Remark="超时时间,不填或填0为无超时">0</TimeOut>
+            <IsBlock Remark="页面是否阻塞,1阻塞,0不阻塞">0</IsBlock>
+            <ShowData Remark="页面显示的数据,格式为:标签1=值,标签2=值2"></ShowData>
+        </Params>
+        <Return>
+            <switch case="default">step_Ret_error</switch>
+        </Return>
+    </step_DevError>
+
+
+    <!-- Cash In Error -->          
+    <step_CashInFinishErr>
+        <ClassName>SwitchData</ClassName>
+        <Params>
+            <VarName Remark="两个变量名,要比较的变量用逗号分隔">@InternalTransCode</VarName>
+        </Params>
+        <Return>
+            <switch case="default">step_CashInFinishErr_DEP</switch>
+            <switch case="DEP">step_CashInFinishErr_DEP</switch><!-- 存款显示 -->
+            <switch case="NNDEP">step_CashInFinishErr_DEP</switch>
+            <switch case="CZDEP">step_CashInFinishErr_DEP</switch>
+            <switch case="XYNNDEP">step_CashInFinishErr_DEP</switch>
+            <switch case="XYDEP">step_CashInFinishErr_DEP</switch>
+            <switch case="EXC">step_CashInFinishErr_EXC</switch><!-- 兑换显示 -->
+        </Return>
+    </step_CashInFinishErr>
+	
+    <step_CashInTimeout_DEP>
+        <ClassName>UpdateRecord</ClassName>
+        <Params>
+            <TableName Remark="表名">TransDEPInfo</TableName>
+            <Condition Remark="更新条件">ID=@QueryRecordID</Condition>
+            <FieldName Remark="字段名,用逗号分隔">Failure_Code,ReasonCode,DepositAmount,HostTransDate,HostTransTime</FieldName>
+            <FieldValue Remark="字段值,用逗号分隔">ERROR,04,@DepositAmount,@HostTransDate,@HostTransTime</FieldValue>
+        </Params>
+        <Return>
+            <switch case="default">step_07_setRet_timeout</switch>
+        </Return>
+    </step_CashInTimeout_DEP>
+	
+    <step_07_setRet_timeout>
+        <ClassName>SetData</ClassName>
+        <Params>
+            <VarName Remark="变量名,多个以逗号分隔">@TransRet</VarName>
+            <VarValue Remark="变量值,多个以逗号分隔">TIMEOUT</VarValue>
+        </Params>
+        <Return>            
+            <switch case="default">step_TIMEOUT_ERR_PJ</switch>
+        </Return>
+    </step_07_setRet_timeout>
+	
+    <step_TIMEOUT_ERR_PJ>
+        <ClassName>JournalPrint</ClassName>
+        <Params>
+            <PrintText1 Remark="记录内容">***存款异常，用户可能没有取走拒钞***</PrintText1>
+            <PrintText2 Remark="记录内容，可为空，均在同一记录"></PrintText2>
+            <PrintText3 Remark="记录内容，可为空，均在同一记录"></PrintText3>
+        </Params>
+        <Return>
+            <switch case="default">step_script57</switch>
+        </Return>
+    </step_TIMEOUT_ERR_PJ>
+
+    <step_CashInTimeout_EXC>
+        <ClassName>UpdateRecord</ClassName>
+        <Params>
+            <TableName Remark="表名">TransEXCInfo</TableName>
+            <Condition Remark="更新条件">ID=@QueryRecordID</Condition>
+            <FieldName Remark="字段名,用逗号分隔">Failure_Code,ReasonCode,ExchangeAmount</FieldName>
+            <FieldValue Remark="字段值,用逗号分隔">ERROR,04,@DepositAmount</FieldValue>
+        </Params>
+        <Return>
+            <switch case="default">step_07_setRet_timeout_EXC</switch>
+        </Return>
+    </step_CashInTimeout_EXC>
+	
+    <step_07_setRet_timeout_EXC>
+        <ClassName>SetData</ClassName>
+        <Params>
+            <VarName Remark="变量名,多个以逗号分隔">@TransRet</VarName>
+            <VarValue Remark="变量值,多个以逗号分隔">TIMEOUT</VarValue>
+        </Params>
+        <Return>            
+            <switch case="default">step_TIMEOUT_ERR_EXC_PJ</switch>
+        </Return>
+    </step_07_setRet_timeout_EXC>
+	
+    <step_TIMEOUT_ERR_EXC_PJ>
+        <ClassName>JournalPrint</ClassName>
+        <Params>
+            <PrintText1 Remark="记录内容">***入钞异常，用户可能没有取走拒钞***</PrintText1>
+            <PrintText2 Remark="记录内容，可为空，均在同一记录">@JPrintVal_2</PrintText2>
+            <PrintText3 Remark="记录内容，可为空，均在同一记录">@JPrintVal_3</PrintText3>
+        </Params>
+        <Return>
+            <switch case="default">step_DeviceError_03</switch>
+        </Return>
+    </step_TIMEOUT_ERR_EXC_PJ>
+
+    <step_03_RefreshIDC Remark="去掉千位分隔符">
+        <ClassName>RunScript</ClassName>
+        <Params>
+            <FileName Remark="脚本文件名">Format.js</FileName>
+            <FunName Remark="函数名">DEPdot</FunName>
+            <FunParam Remark="参数,多个以逗号分隔"></FunParam>
+        </Params>
+        <Return>
+            <switch case="default">step_03_DEP_InsertRecord</switch>
+        </Return>
+    </step_03_RefreshIDC>
+	
+    <step_03_DEP_InsertRecord Remark="记录数据库,初始化数据库数据">
+        <ClassName>InsertRecord</ClassName>
+        <Params>
+            <TableName Remark="表名">TransDEPInfo</TableName>
+            <FieldName Remark="字段名,用逗号分隔">CardBinFlag,DeviceNo,batch,CurrentDate,CurrentTime,Card_No,DepositAmount,SeqNo,trancode,Tellerid</FieldName>
+            <FieldValue Remark="字段值,用逗号分隔">@CardBinFlag,@DeviceNo,@batch,@DBDate,@DBTime,@Card_No,@DepositAmount,@SeqNo,ATM_DEP,@DeviceNo</FieldValue>
+        </Params>
+        <Return>
+            <switch case="default">step_04_DEP_QueryRecord</switch>
+        </Return>
+    </step_03_DEP_InsertRecord>
+	
+    <step_04_DEP_QueryRecord>
+        <ClassName>QueryRecord</ClassName>
+        <Params>
+            <TableName Remark="表名">TransDEPInfo</TableName>
+            <Condition Remark="查询条件">SeqNo=@SeqNo,CurrentDate=@DBDate,CurrentTime=@DBTime</Condition>
+            <FieldName Remark="字段名,用逗号分隔">ID</FieldName>
+            <FieldValue Remark="保存字段值的变量名,用逗号分隔">@QueryRecordID</FieldValue>
+        </Params>
+        <Return>
+            <switch case="default">step_04_DEP_format</switch>
+        </Return>
+    </step_04_DEP_QueryRecord>
+  
+    <step_04_DEP_format  Remark="更新tranlog的时间">
+        <ClassName>RunScript</ClassName>
+        <Params>
+            <FileName Remark="脚本文件名">Format.js</FileName>
+            <FunName Remark="函数名">TranlogTime</FunName>
+            <FunParam Remark="参数,多个以逗号分隔"></FunParam>
+        </Params>
+        <Return>
+            <switch case="default">step_04_DEP_QueryRecordID</switch>
+        </Return>
+    </step_04_DEP_format>
+	
+    <step_04_DEP_QueryRecordID>
+        <ClassName>QueryRecord</ClassName>
+        <Params>
+            <TableName Remark="表名">translog</TableName>
+            <Condition Remark="查询条件">trantime=@Tranlogtime</Condition>
+            <FieldName Remark="字段名,用逗号分隔">tranlog_id,trancode</FieldName>
+            <FieldValue Remark="保存字段值的变量名,用逗号分隔">@QueryRecordTranID,@QueryRecordTranCode</FieldValue>
+        </Params>
+        <Return>
+            <switch case="default">step_06_ClearData</switch>
+        </Return>
+    </step_04_DEP_QueryRecordID>
+	
+	
+	
+    <step_06_ClearData>
+        <ClassName>RunScript</ClassName>
+        <Params>
+            <FileName Remark="脚本文件名">Msg_PackData.js</FileName>
+            <FunName Remark="函数名">ClearData</FunName>
+            <FunParam Remark="参数,多个以逗号分隔"></FunParam>
+        </Params>
+        <Return>
+            <switch case="default">step_CashInFinishErr_DEP</switch>
+        </Return>
+    </step_06_ClearData>
+	
+	
+	
+	
+	
+	
+                     
+    <step_CashInFinishErr_DEP Remark="存款验钞是故障">
+        <ClassName>UpdateRecord</ClassName>
+        <Params>
+            <TableName Remark="表名">TransDEPInfo</TableName>
+            <Condition Remark="更新条件">ID=@QueryRecordID</Condition>
+            <FieldName Remark="字段名,用逗号分隔">Failure_Code,ReasonCode</FieldName>
+            <FieldValue Remark="字段值,用逗号分隔">ERROR,01</FieldValue>
+        </Params>
+        <Return>
+            <switch case="default">step_DeviceError_02</switch>
+        </Return>
+    </step_CashInFinishErr_DEP> 
+                       
+    <step_CashInFinishErr_EXC Remark="存款验钞是故障">
+        <ClassName>UpdateRecord</ClassName>
+        <Params>
+            <TableName Remark="表名">TransEXCInfo</TableName>
+            <Condition Remark="更新条件">ID=@QueryRecordID</Condition>
+            <FieldName Remark="字段名,用逗号分隔">Failure_Code,ReasonCode</FieldName>
+            <FieldValue Remark="字段值,用逗号分隔">ERROR,01</FieldValue>
+            
+        </Params>
+        <Return>
+            <switch case="default">step_DeviceError_02</switch>
+        </Return>
+    </step_CashInFinishErr_EXC>                                   
+	
+    <step_DeviceError_02 Remark="存款时，设备出现故障，金额为空（不管连续继续存款多少次）">
+        <ClassName>SetData</ClassName>
+        <Params>
+            <VarName Remark="变量名,多个以逗号分隔"><!--@Show_DepositAmount,-->@TransRet</VarName>
+            <VarValue Remark="变量值,多个以逗号分隔">CASHINERR</VarValue>
+        </Params>
+        <Return>
+            <switch case="default">step_09_PrintDenoCount</switch>
+        </Return>
+    </step_DeviceError_02>
+	
+	
+    <step_09_PrintDenoCount>
+        <ClassName>RunScript</ClassName>
+        <Params>
+            <FileName Remark="脚本文件名">GetCheck_TCRInfo.js</FileName>
+            <FunName Remark="函数名">PrintDenoCount</FunName>
+            <FunParam Remark="参数,多个以逗号分隔">DEP,AFTER</FunParam>
+        </Params>
+        <Return>
+            <switch case="default">step_09_PrintDenoCount2</switch>
+        </Return>
+    </step_09_PrintDenoCount>		
+  
+    <step_09_PrintDenoCount2>
+        <ClassName>JournalPrint</ClassName>
+        <Params>
+            <PrintText1 Remark="记录内容">@JPrintVal_1</PrintText1>
+            <PrintText2 Remark="记录内容，可为空，均在同一记录">@JPrintVal_2</PrintText2>
+            <PrintText3 Remark="记录内容，可为空，均在同一记录">@JPrintVal_3</PrintText3>
+        </Params>
+        <Return>
+            <switch case="default">step_StackerNotEmpty_ERR</switch>
+        </Return>
+    </step_09_PrintDenoCount2>
+
+    <step_StackerNotEmpty_ERR>
+        <ClassName>JournalPrint</ClassName>
+        <Params>
+            <PrintText1 Remark="记录内容">***钞票入缓存失败，需退出缓存中的钞币***</PrintText1>
+            <PrintText2 Remark="记录内容，可为空，均在同一记录">@JPrintVal_2</PrintText2>
+            <PrintText3 Remark="记录内容，可为空，均在同一记录">@JPrintVal_3</PrintText3>
+        </Params>
+        <Return>
+            <switch case="default">step_StackerNotEmpty_ERR1</switch>
+        </Return>
+    </step_StackerNotEmpty_ERR>
+
+    <step_StackerNotEmpty_ERR1>
+        <ClassName>JournalPrint</ClassName>
+        <Params>
+            <PrintText1 Remark="记录内容">机器状态码:error</PrintText1>
+            <PrintText2 Remark="记录内容，可为空，均在同一记录">@JPrintVal_2</PrintText2>
+            <PrintText3 Remark="记录内容，可为空，均在同一记录">@JPrintVal_3</PrintText3>
+        </Params>
+        <Return>
+            <switch case="default">step_DeviceError_03</switch>
+        </Return>
+    </step_StackerNotEmpty_ERR1>
+
+    <step_DeviceError_03>
+        <ClassName>CallStep</ClassName>
+        <Params>
+            <Step Remark="流程名">Print_Trans_Receipt</Step>
+            <Node Remark="节点名">step_01</Node>
+        </Params>
+        <Return>
+            <switch case="default">step_deviceErr_setShutter</switch>
+        </Return>
+    </step_DeviceError_03>
+    <!-- End -->
+    <step_deviceErr_setShutter Remark="设置闸口控制">
+        <ClassName>SetData</ClassName>
+        <Params>
+            <VarName Remark="变量名,多个以逗号分隔">@IsDoorOpenFront</VarName>
+            <VarValue Remark="变量值,多个以逗号分隔">Y</VarValue>
+        </Params>
+        <Return>
+            <switch case="default">step_deviceErr_closeShutter</switch>
+        </Return>
+    </step_deviceErr_setShutter>
+    
+    <step_deviceErr_closeShutter Remark="关闭闸口">
+        <ClassName>CallStep</ClassName>
+        <Params>
+            <Step Remark="流程名">TCR_OpenShutter</Step>
+            <Node Remark="节点名">step_01</Node>
+        </Params>
+        <Return>
+            <switch case="default">step_deviceErrJumpStep</switch>
+        </Return>
+    </step_deviceErr_closeShutter>
+    
+    <step_deviceErrJumpStep>
+        <ClassName>JumpStep</ClassName>
+        <Params>
+            <Step Remark="流程名">DeviceErr</Step>
+            <Node Remark="节点名">step_01</Node>
+        </Params>
+        <Return>
+        </Return>
+    </step_deviceErrJumpStep>	
+
+</root>

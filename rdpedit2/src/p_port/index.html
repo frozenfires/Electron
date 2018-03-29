@@ -1,0 +1,109 @@
+<!doctype html>
+<html>
+<head>
+	<title>P端模拟器</title>
+    <meta http-equiv="content-type" content="text/html;charset=utf-8" />
+    <link rel="stylesheet" href="../lib/layui/css/layui.css" />
+
+
+		
+</head>
+<body>
+	<div style="width:1000px;height:660px">
+		<div class="layui-row">
+			<div class="layui-col-md3" style="height:660px">
+				<div style="width:100%;height:100%" class="layui-bg-gray">
+					<fieldset class="layui-elem-field">
+					<legend style="font-size:18px">服务器管理</legend>
+						<form class="layui-form" action="#">
+							<div class="layui-form-item" style="color:black">
+								  <select name="connect_type" lay-verify="required">
+									<option value="">请选择服务器类型</option>
+									<option value="0">TCP服务器</option>
+								  </select>
+								  <input type="text" id="ip" required  lay-verify="required" placeholder="请输入本机IP地址" autocomplete="off" class="layui-input">
+								  <input type="text" id="port" required  lay-verify="required" placeholder="请输入端口" autocomplete="off" class="layui-input">
+								  
+							</div>
+						</form>
+						<button class="layui-btn layui-btn-radius layui-btn-normal" id="creat_service">
+							<i class="layui-icon layui-anim layui-anim-rotate">&#x1002;</i> <span>创建服务器</span>
+						</button><br/><br/>
+						<button class="layui-btn layui-btn-radius layui-btn-danger" id="close_service">
+							<i class="layui-icon">&#x1006;</i> 关闭服务器
+						</button>
+					</fieldset>
+				</div>
+			</div>
+
+			<div class="layui-col-md9" style="height:600px">
+				<div class="layui-row">
+					<div class="layui-col-md12">
+						<div style="width:100%;height:100%" >
+							<fieldset class="layui-elem-field">
+							<legend style="font-size:18px">报文解析</legend>
+							<table class="layui-table" id="show_mess" lay-data="{height:245,id: 'show_mess'}">
+							  <thead>
+								<tr>
+								  <th lay-data="{field:'type', width:120}">type</th>
+								  <th lay-data="{field:'value',width:600}">值</th>	
+								</tr>
+							  </thead>
+							</table>
+							</fieldset>
+						</div>
+					</div>
+				</div>
+				<div class="layui-row">
+					<div class="layui-col-md12" >
+						<div style="width:100%;height:100%">
+						<fieldset class="layui-elem-field">
+							<legend style="font-size:18px">返回报文管理</legend>
+								<form class="layui-form" action="#">
+									<div class="layui-form-item">
+									<table>
+										<tr>
+											<td><input type="radio" name="sendtype" value="1" title="使用默认报文" checked></td>
+											<td><input type="radio" name="sendtype" value="0" title="使用自定义报文"></td>
+										</tr>
+										<tr>
+											<td>
+												<textarea style="width:370px;height:130px;resize: none;" readonly id="default_back"></textarea>
+											</td>
+											<td>
+												<textarea style="width:370px;height:130px;resize: none;" id="user_defined"></textarea>
+											</td>
+										</tr>
+									</table>
+									</div>
+								</form>
+							</fieldset>
+						</div>
+					</div>
+					<div class="layui-col-md12" style="border:1px gray solid;">
+						<label >信息显示：</label>
+						<div style="width:100%;height:120px;overflow:auto;background-color:gray;color:white" id="screen">
+						</div>
+					</div>
+				</div>
+			 </div>
+			 
+		</div>
+		
+	</div>
+	 <script src="../external/jquery-1.9.0-min.js"></script>
+	 <script src="../lib/jqtree/tree.jquery.js"></script>
+	 <script src="../lib/layui/layui.js"></script>
+	 <script src="../src/jquery.xml2json.js"></script>
+	 <script src="index.js"></script>
+	 <script>
+		layui.use('layedit', function(){
+
+		});
+		layui.use('element', function(){
+		  var element = layui.element;
+		  
+		});
+	</script>
+</body>
+</html>

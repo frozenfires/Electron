@@ -1,0 +1,16 @@
+
+
+
+echo 清空目标目录
+mkdir target
+cd target
+del /s /q /f *.*
+for /d %%i in (*) do rd /s /q "%%i"
+cd ..
+pause
+
+echo 复制runtime
+xcopy /e .\runtime .\target
+pause
+
+asar pack .\src .\target\resources\app.asar

@@ -1,0 +1,1 @@
+call .\runtime\RDPIDE --debug .\src

@@ -1,0 +1,128 @@
+
+body{background: none;}
+
+/*居中样式*/
+.center{text-align: center}
+
+div.window{height: auto; width: auto; -webkit-box-shadow: 2px 2px 19px #808080;}
+div.window.common{background-color: #EFD100}
+a.stepa.common div:before {content: ''; margin-right: 2px; border-left: 5px solid #daa100;}
+
+div.window span{display: block;}
+
+div.window a{display: block;}
+div.window a:hover{color: #1d8267; }
+div.window a:visited{color: #000;}
+div.window a:active{color: #000;}
+
+div.window .content{margin-left: 3px;}
+div.window.CallStep a:before,
+div.window.JumpStep a:before
+{ content: '';border-left: 5px solid #daa100;position: absolute;left: 2px;height: 80%;}
+
+
+/*错误节点样式 */
+.window.error, .window.error:hover{
+    box-shadow: 2px 2px 19px #F91414;
+    -o-box-shadow: 2px 2px 19px #F91414;
+    -webkit-box-shadow: 2px 2px 19px #F91414;
+    -moz-box-shadow: 2px 2px 19px #F91414;
+}
+
+/*开始结束节点颜色*/
+.endpoint{background-color: #008aff; color: #fff;}
+.startpoint{background-color: #ff9600; color: #fff;}
+/*空节点样式*/
+.nullpoint{background-color: #ff9600; color: #fff;}
+
+/* .CallStep a,.JumpStep a{color}
+.CallStep .stepid, .JumpStep .stepid{background-color: #2B7119; color: #fff;}
+.CallStep a,.JumpStep a{color: #fff;}  */
+
+.nouse{background-color: #AF0505; color: #fff;}
+.nullNode{display: none;}
+
+
+.explanation{padding-top: 10px; padding-bottom: 10px; height: auto; background-color: #0b84e9;}
+.explanation div{ display: inline-block; vertical-align: middle;}
+.explanation .rootRemark{font-weight: 600; font-size: 19px; color: #fff; position: absolute;    left: 10px;}
+
+.releasenote{ position: absolute;    right: 10px;    font-size: 14px; }
+.releasenote a{color:#fff}
+
+
+div#main{padding-top: 30px;}
+
+div._jsPlumb_overlay{text-shadow: #fff 1px 0 0,#fff 0 1px 0,#fff -1px 0 0,#fff 0 -1px 0;}
+
+
+
+
+
+#main{
+   height:100%;
+   position: absolute;
+}
+
+#node-view{ 
+	overflow:auto;
+	height:100%; float: left;position: inherit;
+	left: 0;position: absolute;
+}
+/*节点解析的样式*/
+#node-edit{
+	font-size : 15px;
+	overflow:-Scroll;overflow-x:hidden;float: right;
+	position: absolute;width: 300px;right: 0;
+	height: 100%;
+}
+
+/*节点解析 参数、返回值 样式*/
+#nodeparam div.param:last-child,#nodereturn div.return:last-child{
+    /*为什么没起作用?*/
+    border:none;
+}
+/*节点解析 参数、返回值 样式*/
+#node-edit #nodeparam .param,#node-edit #nodereturn .return{
+	border-bottom: 1px dashed green;padding-bottom: 10px;
+}
+
+/*右键模态窗口样式*/
+#rightClickNode,#rightClickLine{
+	display:none;
+	position: absolute;
+	z-index: 3000;
+	background: #eeeeee;
+	/*width:200px;*/
+	padding-right:9px;
+    box-shadow:0 2px 4px rgba(0,0,0,.12);
+}
+/*右键模态窗口样式*/
+#rightClickNode ul.actions-container,#rightClickLine ul.actions-container{
+	 display:block;
+	 line-height:26px;
+	 margin-left:25px;
+	 padding-left:10px;
+	 z-index:3000;
+	 border-left:1px solid #c8c8c8;
+	 cursor:pointer;
+	 font-family:宋体;
+	 font-size: 12px;
+	 color: #d0d0d0;
+}
+/*空白节点样式*/
+#newNode{
+	box-shadow:2px 2px 19px #e0e0e0;
+	border-radius:0.5em;
+	position:absolute;
+	padding:0.5em;
+	width:80px;
+	height:40px;
+	background-color:white;
+	border:1px solid #346789;
+}
+/*选择节点的样式*/
+#kitchensink-demo >div.component.window.line-this{
+    border: 1px solid #4BB8FF;
+    -webkit-box-shadow: 2px 2px 19px #4BB8FF;
+}

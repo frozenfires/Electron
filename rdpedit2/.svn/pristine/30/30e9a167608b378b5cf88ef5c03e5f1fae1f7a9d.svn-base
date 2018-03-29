@@ -1,0 +1,181 @@
+<!doctype html>
+<html>
+    <head>
+        <title>RDP图形化流程分析系统</title>
+        <meta http-equiv="content-type" content="text/html;charset=utf-8" />
+        <link rel="stylesheet" href="../../css/jsplumb.css">
+        <link rel="stylesheet" href="../../css/rdpedit.css">
+        <style type="text/css">
+         #node-view{ 
+		 overflow:auto;
+		 /*width:85%;*/height:100%; float: left;position: inherit;
+		 left: 0;position: absolute;
+	}
+        .window{line-height: 15px;}
+        body{background-color: #f1f1f1;}/* 千辛万苦找到的背景色的地址！*/
+	/*视图右侧样式设置*/
+	   #node-edit{
+	    font-size : 15px;
+	    overflow:-Scroll;overflow-x:hidden;float: right;
+		position: absolute;width: 300px;right: 0;
+		height: 100%;
+	   }
+	   #main{
+	   height:100%;
+	   position: absolute;
+	   }
+
+        #nodeparam div.param:last-child,#nodereturn div.return:last-child{
+        /*为什么没起作用?*/
+        border:none;
+       }
+
+       #node-edit #nodeparam .param,#node-edit #nodereturn .return{
+        border-bottom: 1px dashed green;padding-bottom: 10px;
+       }
+      
+	 #rightClickNode,#rightClickLine{
+		display:none;
+		position: absolute;
+		z-index: 3000;
+		background: #eeeeee;
+		/*width:200px;*/
+		padding-right:9px;
+        box-shadow:0 2px 4px rgba(0,0,0,.12);
+    }
+    /* 右键叶签栏样式*/
+	#rightClickNode ul.actions-container,#rightClickLine ul.actions-container{
+		 display:block;
+		 line-height:26px;
+		 margin-left:25px;
+		 padding-left:10px;
+		 z-index:3000;
+		 border-left:1px solid #c8c8c8;
+		 cursor:pointer;
+		 font-family:宋体;
+		 font-size: 12px;
+		 color: #d0d0d0;
+	}
+	#newNode{
+	box-shadow:2px 2px 19px #e0e0e0;
+	border-radius:0.5em;
+	position:absolute;
+	padding:0.5em;
+	width:80px;
+	height:40px;
+	background-color:white;
+	border:1px solid #346789;
+	}
+    #kitchensink-demo >div.component.window.line-this{
+        border: 1px solid #4BB8FF;
+        -webkit-box-shadow: 2px 2px 19px #4BB8FF;
+    }
+
+	  
+	  
+        </style>
+    </head>
+    <body data-demo-id="home" data-library="jquery">
+	
+	<div id = "node-view">
+		<div id="main">
+			<div class="demo kitchensink-demo" id="kitchensink-demo"></div>
+		</div>
+	</div>
+
+	<div id="node-edit" style="">
+        <div class="layui-form layui-form-pane" action="">
+            <fieldset id ="nodeinfo" class="layui-form-item">
+                <legend>节点信息</legend>
+            </fieldset>       
+
+
+        	<fieldset id ="nodeparam">
+                <legend>参数信息</legend>
+                <button  class="add_nodeparam"/>增加</button>
+            </fieldset>
+			
+			
+        	<fieldset id ="nodereturn">
+                <legend>返回值信息</legend>
+                <button  class="add_nodereturn"/>增加</button>  
+            </fieldset>
+      </div>
+	</div> 
+	
+	<div id ="rightClickNode">
+	   <ul class="actions-container" role="toolbar">
+		   <li class="action-item" role="presentation">
+				<a id="beforeAdd" class="action-label" role="button" tabindex="0">在此之上增加一个节点</a>
+		   </li>
+		   <li class="action-item" role="presentation">
+				<a id="afterAdd" class="action-label" role="button" tabindex="0">在此之下增加一个节点</a>
+		   </li>
+		   <li class="action-item" role="presentation">
+				<a id="delNode" class="action-label" role="button" tabindex="0">删除节点</a>
+		   </li>
+	   </ul>
+	</div>
+
+    <div id ="rightClickLine">
+       <ul class="actions-container" role="toolbar">
+           <li class="action-item" role="presentation">
+                <a id="aTob" class="action-label" role="button" tabindex="0">分支流向A--B</a>
+           </li>
+           <li class="action-item" role="presentation">
+                <a id="bToa" class="action-label" role="button" tabindex="0">分支流向B--A</a>
+           </li>
+       </ul>
+    </div>
+
+        <script src="../../external/jquery-1.9.0-min.js"></script>
+        <script src="../../external/jquery-ui-1.9.2.min.js"></script>
+        <script src="../../external/jquery.ui.touch-punch-0.2.2.min.js"></script>
+
+        <!-- JS -->
+        <!-- support lib for bezier stuff -->
+        <script src="../../lib/jsBezier-0.6.js"></script>
+        <!-- geom functions -->
+        <script src="../../lib/biltong-0.2.js"></script>
+        <!-- jsplumb util -->
+        <script src="../../src/util.js"></script>
+        <script src="../../src/browser-util.js"></script>
+        <!-- base DOM adapter -->
+        <script src="../../src/dom-adapter.js"></script>
+        <!-- main jsplumb engine -->
+        <script src="../../src/jsPlumb.js"></script>
+        <!-- endpoint -->
+        <script src="../../src/endpoint.js"></script>
+        <!-- connection -->
+        <script src="../../src/connection.js"></script>
+        <!-- anchors -->
+        <script src="../../src/anchors.js"></script>
+        <!-- connectors, endpoint and overlays  -->
+        <script src="../../src/defaults.js"></script>
+        <!-- bezier connectors -->
+        <script src="../../src/connectors-bezier.js"></script>
+        <!-- state machine connectors -->
+        <script src="../../src/connectors-statemachine.js"></script>
+        <!-- flowchart connectors -->
+        <script src="../../src/connectors-flowchart.js"></script>
+        <!-- SVG renderer -->
+        <script src="../../src/renderers-svg.js"></script>
+
+
+        <!-- vml renderer -->
+        <script src="../../src/renderers-vml.js"></script>
+
+        <script src="../../src/connector-editors.js"></script>
+
+        <!-- jquery jsPlumb adapter -->
+        <script src="../../src/jquery.jsPlumb.js"></script>
+        <!-- /JS -->
+
+		<script src="../../src/jquery.xml2json.js"></script>
+        <script src="../../src/ajaxfileupload.js"></script>
+		<script src="stepnode.js"></script>
+        <script src="step.js"></script>
+        <script src="../../lib/layui/layui.js"></script>
+
+    </body>
+</html>

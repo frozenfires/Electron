@@ -1,0 +1,56 @@
+
+body{background: none;}
+
+/*居中样式*/
+.center{text-align: center}
+
+div.window{height: auto; width: auto; -webkit-box-shadow: 2px 2px 19px #808080;}
+div.window.common{background-color: #EFD100}
+a.stepa.common div:before {content: ''; margin-right: 2px; border-left: 5px solid #daa100;}
+
+div.window span{display: block;}
+
+div.window a{display: block;}
+div.window a:hover{color: #1d8267; }
+div.window a:visited{color: #000;}
+div.window a:active{color: #000;}
+
+div.window .content{margin-left: 3px;}
+div.window.CallStep a:before,
+div.window.JumpStep a:before
+{ content: '';border-left: 5px solid #daa100;position: absolute;left: 2px;height: 80%;}
+
+
+/*错误节点样式 */
+.window.error, .window.error:hover{
+    box-shadow: 2px 2px 19px #F91414;
+    -o-box-shadow: 2px 2px 19px #F91414;
+    -webkit-box-shadow: 2px 2px 19px #F91414;
+    -moz-box-shadow: 2px 2px 19px #F91414;
+}
+
+/*开始结束节点颜色*/
+.endpoint{background-color: #008aff; color: #fff;}
+.startpoint{background-color: #ff9600; color: #fff;}
+/*空节点样式*/
+.nullpoint{background-color: #ff9600; color: #fff;}
+
+/* .CallStep a,.JumpStep a{color}
+.CallStep .stepid, .JumpStep .stepid{background-color: #2B7119; color: #fff;}
+.CallStep a,.JumpStep a{color: #fff;}  */
+
+.nouse{background-color: #AF0505; color: #fff;}
+.nullNode{display: none;}
+
+
+.explanation{padding-top: 10px; padding-bottom: 10px; height: auto; background-color: #0b84e9;}
+.explanation div{ display: inline-block; vertical-align: middle;}
+.explanation .rootRemark{font-weight: 600; font-size: 19px; color: #fff; position: absolute;    left: 10px;}
+
+.releasenote{ position: absolute;    right: 10px;    font-size: 14px; }
+.releasenote a{color:#fff}
+
+
+div#main{padding-top: 30px;}
+
+div._jsPlumb_overlay{text-shadow: #fff 1px 0 0,#fff 0 1px 0,#fff -1px 0 0,#fff 0 -1px 0;}

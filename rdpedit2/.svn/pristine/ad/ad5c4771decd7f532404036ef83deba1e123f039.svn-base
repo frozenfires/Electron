@@ -1,0 +1,165 @@
+.layui-tab {
+    margin: 0;
+    height: 100%;
+}
+.layui-tab-content {
+     padding: 0px; 
+     height: 100%;
+}
+.layui-tab-item {
+    height: 100%;
+	background-color:#aeaeae;
+}
+
+/*叶签栏样式*/
+.layui-tab>.layui-tab-title {	
+	background-color: #272828;
+	padding-left:35px;
+	border-bottom: none; /*1px solid #c8c8c8;*/
+	height:30px; 
+	margin-right:15px;
+}
+
+/*选中的叶签*/
+.layui-tab>.layui-tab-title .layui-this {
+	color:#444444;
+    height:29px;
+	background-image:linear-gradient(#eeeeee, #c8c8c8);
+	border-right:1px solid #666765;
+	border-left:1px solid #666765;
+	border-top:1px solid #666765;
+}
+
+
+/*叶签样式*/
+.layui-tab-title li{
+	line-height:29px;
+	font-size:12px;
+	color:#bfbfbf;
+	font-family:Arial;
+	padding:0px 5px 0px 5px;
+	border-top-right-radius:5px;
+	border-top-left-radius:5px;
+	border-right:1px solid #545454;
+	border-left:1px solid #545454;
+	border-top:1px solid #545454;
+	background-image:linear-gradient(#50514e, #3a3b38);
+}
+
+/*关闭按钮样式*/
+.layui-tab-title li .layui-tab-close{
+	margin-left:10px;
+	color: #90908f;
+}
+.layui-tab-title li .layui-tab-close:hover{
+	background-color:#c8c8c8;
+}
+/*关闭按钮样式*/
+.layui-icon{
+	font-size:11px;
+	font-weight:900;
+}
+.layui-tab-title .layui-this:after{
+	height:29px;
+	border:0;
+	border-bottom-color:1px solid #c8c8c8;
+}
+div #fileTabContent{
+    height: 100%;
+    background-color:#c8c8c8;
+}
+
+/*叶签前进后退按钮样式*/
+ #fuhao{
+   position:absolute;
+   float:left;
+   background-color:#272828;
+   z-index:3000;
+   height:30px;
+   width:35px;
+}
+
+div #tabs div#fuhao >.layui-icon{
+	line-height:30px;
+	padding-left:4px;
+	color:#c8c8c8;
+    cursor:pointer;
+	background-color:#272828;
+}
+
+/*右侧悬浮按钮*/
+.layui-tab-title> .layui-tab-bar{
+	position:fixed;
+	height:30px;
+	border:none;
+	display:none;
+}
+
+ #rightSign i.layui-icon{
+	position:absolute;
+	z-index:3000;
+	width:15px;
+	line-height:30px;
+	color:#c8c8c8;
+	cursor:pointer;
+	background:#272828;
+	right:0;
+} 
+#openTitle {
+   position:absolute;
+   z-index:3000;
+   cursor:pointer;
+   top:-35px;
+   width:200px;
+   text-align:center;
+   right:0;
+		
+}
+
+#titleleft{
+	float:left;
+	width:20px;
+	border-right:1px solid #c8c8c8;
+	line-height:26px;
+}
+#titleright{
+	margin-left:30px;
+	text-align:left;
+	line-height:26px;
+	font-size:12px;
+	font-family:Arial;
+	color:#444444;
+}
+
+/*选中的弹出框样式*/
+#titleleft  i.layui-this{
+	display:inline-block;
+}
+/*弹出框样式*/
+#titleleft i{
+	display:none;
+}
+
+/* 右键叶签栏样式*/
+#rightClick-Window{
+	display:none;
+	position: absolute;
+	z-index: 3000;
+	background: #eeeeee;
+	width:200px;
+	box-shadow:1px 2px 4px rgba(0,0,0,.12);
+	border: 1px solid #e2e2e2;
+}
+/* 右键叶签栏样式*/
+#rightClick-Window ul.actions-container{
+	 display:block;
+	 line-height:26px;
+	 margin-left:25px;
+	 padding-left:10px;
+	 z-index:3000;
+	 border-left:1px solid #c8c8c8;
+	 cursor:pointer;
+	 font-family:宋体;
+	 font-size: 12px;
+	 color: #d0d0d0;
+}
